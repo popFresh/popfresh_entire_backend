@@ -3,7 +3,7 @@ import {
     testShiprocketConnection,
     getServiceability,
     createShipmentController 
-} from "../../../controllers/logistics.controller.js";
+} from "../../../controllers/logistics/logistics.controller.js";
 
 const router = express.Router();
 

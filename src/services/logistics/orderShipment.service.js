@@ -27,6 +27,8 @@ export const createShipmentForOrder = async (orderId) => {
         },
     });
 
+
+
     // =====================================================
     // Validation
     // =====================================================
@@ -53,17 +55,24 @@ export const createShipmentForOrder = async (orderId) => {
         throw error;
     }
 
+
+    
     // =====================================================
     // Build Shiprocket Payload
     // =====================================================
 
     const payload = buildShipmentPayload(order);
 
+    
+
     // =====================================================
     // Create Shipment in Shiprocket
     // =====================================================
 
     const shipment = await createShipment(payload);
+
+
+    
 
     // =====================================================
     // Save Shipment in Database
@@ -96,5 +105,7 @@ export const createShipmentForOrder = async (orderId) => {
         },
     });
 
+    
     return savedShipment;
 };
+

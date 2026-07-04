@@ -1,6 +1,6 @@
-import { verifyConnection } from "../services/logistics/auth.service.js";
-import { checkServiceability } from "../services/logistics/serviceability.service.js";
-import { createShipment } from "../services/logistics/shipment.service.js";
+import { verifyConnection } from "../../services/logistics/auth.service.js";
+import { checkServiceability } from "../../services/logistics/serviceability.service.js";
+import { createShipment } from "../../services/logistics/shipment.service.js";
 
 
 export const testShiprocketConnection = async (req, res) => {
