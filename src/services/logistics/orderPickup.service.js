@@ -83,12 +83,12 @@ export const schedulePickupForOrder = async (orderId) => {
         );
     }
 
-    if (!order.shipment.manifestUrl) {
-        throw new ApiError(
-            400,
-            "Shipping manifest has not been generated yet."
-        );
-    }
+    // if (!order.shipment.manifestUrl) {
+    //     throw new ApiError(
+    //         400,
+    //         "Shipping manifest has not been generated yet."
+    //     );
+    // }
 
     if (order.shipment.pickupScheduled) {
         throw new ApiError(

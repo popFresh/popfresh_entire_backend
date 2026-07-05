@@ -3,6 +3,7 @@ import prisma from "../../lib/prisma.js";
 import ApiError from "../../utils/ApiError.js";
 
 import { generateManifest } from "./manifest.service.js";
+import { printManifest } from "./printManifest.service.js";
 
 export const generateManifestForOrder = async (orderId) => {
 
@@ -66,28 +67,45 @@ export const generateManifestForOrder = async (orderId) => {
     // Generate Manifest
     // =====================================================
 
-    const manifest = await generateManifest({
-        shipment_id: [
-            Number(order.shipment.shiprocketShipmentId),
-        ],
-    });
+    // const manifest = await generateManifest({
+    //     shipment_id: [
+    //         Number(order.shipment.shiprocketShipmentId),
+    //     ],
+    // });
 
+//     const manifest = await printManifest({
+//     order_ids: [
+//         Number(order.shipment.shiprocketOrderId),
+//     ],
+// });
+
+const manifest = await printManifest({
+    order_ids: [
+        Number(order.shipment.shiprocketOrderId),
+    ],
+});
+
+
+console.log("Manifest Object:");
+console.log(manifest);
     // =====================================================
     // Update Shipment
     // =====================================================
 
     const updatedShipment = await prisma.shipment.update({
-        where: {
-            id: order.shipment.id,
-        },
+    where: {
+        id: order.shipment.id,
+    },
 
-        data: {
-            manifestUrl: manifest.manifestUrl,
+    data: {
+        manifestUrl: manifest.manifestUrl,
 
-            rawResponse: manifest.rawResponse,
-        },
-    });
+        rawResponse: manifest.rawResponse,
+    },
+});
 
-    return updatedShipment;
+console.log("Updated Shipment:");
+console.log(updatedShipment);
 
+return updatedShipment;
 };

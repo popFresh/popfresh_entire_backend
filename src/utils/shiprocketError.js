@@ -1,5 +1,17 @@
 export const handleShiprocketError = (error) => {
-    const statusCode = error.response?.status;
+
+    console.log(
+        
+        error.response?.status
+    );
+
+    console.log(
+        
+        error.response?.data
+    );
+
+    const statusCode =
+        error.response?.status ?? 500;
 
     const data = error.response?.data;
 
@@ -11,8 +23,9 @@ export const handleShiprocketError = (error) => {
 
     const err = new Error(message);
 
-    err.statusCode = statusCode || 500;
-    err.details = data || null;
+    err.statusCode = statusCode;
+
+    err.details = data;
 
     throw err;
 };

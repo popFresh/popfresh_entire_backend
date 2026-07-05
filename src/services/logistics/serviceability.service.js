@@ -1,3 +1,4 @@
+
 import { shiprocketClient } from "./shiprocketClient.js";
 import { handleShiprocketError } from "../../utils/shiprocketError.js";
 import { mapShippingEstimate } from "../../utils/mappers/shiprocket.mapper.js";
@@ -10,17 +11,50 @@ import { mapShippingEstimate } from "../../utils/mappers/shiprocket.mapper.js";
  */
 export const checkServiceability = async (params) => {
     try {
+
         const client = await shiprocketClient();
 
-        const { data } = await client.get("/courier/serviceability", {
-            params,
-        });
+        const { data } = await client.get(
+            "/courier/serviceability",
+            {
+                params,
+            }
+        );
+
+       
 
         return mapShippingEstimate(data);
+
     } catch (error) {
+
         handleShiprocketError(error);
+
     }
 };
+
+// import { shiprocketClient } from "./shiprocketClient.js";
+// import { handleShiprocketError } from "../../utils/shiprocketError.js";
+// import { mapShippingEstimate } from "../../utils/mappers/shiprocket.mapper.js";
+
+// /**
+//  * Check courier serviceability using Shiprocket.
+//  *
+//  * @param {Object} params
+//  * @returns {Object}
+//  */
+// export const checkServiceability = async (params) => {
+//     try {
+//         const client = await shiprocketClient();
+
+//         const { data } = await client.get("/courier/serviceability", {
+//             params,
+//         });
+
+//         return mapShippingEstimate(data);
+//     } catch (error) {
+//         handleShiprocketError(error);
+//     }
+// };
 
 // export const checkServiceability = async ({
 //     pickup_postcode,

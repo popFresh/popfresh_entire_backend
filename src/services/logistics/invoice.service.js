@@ -20,13 +20,21 @@ export const generateInvoice = async (payload) => {
         const client = await shiprocketClient();
 
         const { data } = await client.post(
-            "/courier/generate/invoice",
+            "/orders/print/invoice",
             payload
         );
 
+        console.log(
+    "Shiprocket Invoice Response:",
+    JSON.stringify(data, null, 2)
+);
         return mapInvoiceResponse(data);
 
     } catch (error) {
+        
+        if (error.statusCode) {
+        throw error;
+    }
 
         handleShiprocketError(error);
 

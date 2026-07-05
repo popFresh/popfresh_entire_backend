@@ -25,6 +25,14 @@ export const assignAwb = async (payload) => {
 
         return mapAwbResponse(data);
     } catch (error) {
-        handleShiprocketError(error);
+
+    // Already one of our application errors
+    if (error.statusCode) {
+        throw error;
     }
+
+    // Axios / Shiprocket HTTP error
+    handleShiprocketError(error);
+
+}
 };

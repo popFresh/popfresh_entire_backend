@@ -25,42 +25,102 @@ export const getOrderById = async (id) => {
 
     include: {
 
-    //   customer: true,
     customer: {
-  include: {
-    addresses: {
-      take: 1,
-    },
-  },
-},
-
-      payment: true,
-
-      statusHistory: {
-
-        orderBy: {
-          createdAt: "asc",
+        include: {
+            addresses: {
+                take: 1,
+            },
         },
+    },
 
-      },
+    payment: true,
 
-      orderItems: {
+    shipment: {
 
         include: {
 
-          product: {
+            trackingHistory: {
 
-            include: {
-              images: true,
+                orderBy: {
+
+                    eventTime: "asc",
+
+                },
+
             },
-
-          },
 
         },
 
-      },
+    },
+
+    statusHistory: {
+
+        orderBy: {
+
+            createdAt: "asc",
+
+        },
 
     },
+
+    orderItems: {
+
+        include: {
+
+            product: {
+
+                include: {
+
+                    images: true,
+
+                },
+
+            },
+
+        },
+
+    },
+
+},
+
+//     include: {
+
+//     //   customer: true,
+//     customer: {
+//   include: {
+//     addresses: {
+//       take: 1,
+//     },
+//   },
+// },
+
+//       payment: true,
+
+//       statusHistory: {
+
+//         orderBy: {
+//           createdAt: "asc",
+//         },
+
+//       },
+
+//       orderItems: {
+
+//         include: {
+
+//           product: {
+
+//             include: {
+//               images: true,
+//             },
+
+//           },
+
+//         },
+
+//       },
+
+//     },
 
   });
 
@@ -541,3 +601,4 @@ await tx.orderStatusHistory.create({
   return updatedOrder;
 
 };
+

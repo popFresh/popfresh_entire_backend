@@ -6,12 +6,12 @@ export const mapInvoiceResponse = (response) => {
     // Shiprocket Invoice Generation Failed
     // =====================================================
 
-    if (response.is_invoice_created !== 1) {
-        throw new ApiError(
-            400,
-            response.message || "Failed to generate invoice."
-        );
-    }
+    if (!response.is_invoice_created) {
+    throw new ApiError(
+        400,
+        response.message || "Failed to generate invoice."
+    );
+}
 
     // =====================================================
     // Success

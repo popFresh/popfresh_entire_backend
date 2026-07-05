@@ -12,7 +12,8 @@ import {
   generateManifestController,
   schedulePickupController,
   getTrackingController,
-  cancelShipmentController
+  cancelShipmentController,
+  getServiceabilityController
 } from "../../../controllers/order.controller.js";
 
 const router = Router();
@@ -89,6 +90,11 @@ router.post(
     schedulePickupController
 );
 
+
+router.get(
+    "/:id/serviceability",
+    getServiceabilityController
+);
 
 // ==============================================
 // GET SHIPMENT TRACKING

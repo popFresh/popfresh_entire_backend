@@ -14,6 +14,9 @@ export const SHIPMENT_STATUS_MAP = {
 
     "Pickup Queued": "PICKUP_SCHEDULED",
 
+    // ✅ Add this
+    "ReadyForReceive": "PICKUP_SCHEDULED",
+
     // =====================================================
     // Shipment Movement
     // =====================================================

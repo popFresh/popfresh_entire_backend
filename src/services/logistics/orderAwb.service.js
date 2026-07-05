@@ -52,19 +52,17 @@ export const assignAwbForOrder = async (
         );
     }
 
-    if (order.shipment.status !== "CREATED") {
-        throw new ApiError(
-            400,
-            "AWB can only be assigned to newly created shipments."
-        );
-    }
+   // Allow AWB assignment as long as an AWB has not
+// already been successfully assigned.
 
-    if (order.shipment.awbCode) {
-        throw new ApiError(
-            400,
-            "AWB has already been assigned."
-        );
-    }
+if (order.shipment.awbCode) {
+    throw new ApiError(
+        400,
+        "AWB has already been assigned."
+    );
+}
+
+   
 
     if (!order.shipment.shiprocketShipmentId) {
         throw new ApiError(

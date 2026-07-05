@@ -20,6 +20,7 @@ import { generateManifestForOrder } from "../services/logistics/orderManifest.se
 import { schedulePickupForOrder } from "../services/logistics/orderPickup.service.js";
 import { getTrackingForOrder } from "../services/logistics/orderTracking.service.js";
 import { cancelShipmentForOrder } from "../services/logistics/orderCancelShipment.service.js";
+import { getServiceabilityForOrder } from "../services/logistics/orderServiceability.service.js";
 // ==============================================
 // GET ALL ORDERS
 // GET /api/v1/orders
@@ -318,3 +319,30 @@ export const cancelShipmentController = asyncHandler(async (req, res) => {
     );
 
 });
+
+
+// =====================================================
+// GET SERVICEABILITY (SHIPROCKET)
+// GET /api/v1/orders/:id/serviceability
+// =====================================================
+
+export const getServiceabilityController = asyncHandler(
+    async (req, res) => {
+
+        const serviceability =
+            await getServiceabilityForOrder(
+                req.params.id
+            );
+
+        return res.status(200).json(
+
+            new ApiResponse(
+                200,
+                "Serviceability fetched successfully.",
+                serviceability
+            )
+
+        );
+
+    }
+);

@@ -81,9 +81,9 @@ export const generateInvoiceForOrder = async (orderId) => {
     // =====================================================
 
     const invoice = await generateInvoice({
-        shipment_id: [
-            Number(order.shipment.shiprocketShipmentId),
-        ],
+        ids: [
+    Number(order.shipment.shiprocketOrderId),
+],
     });
 
     // =====================================================
