@@ -34,13 +34,14 @@ export const generateManifestForOrder = async (orderId) => {
             "Shipment has not been created yet."
         );
     }
+//---------CHECK this 
+    // if (order.shipment.status !== "AWB_ASSIGNED") {
+    //     throw new ApiError(
+    //         400,
+    //         "Manifest can only be generated after AWB assignment."
+    //     );
+    // }
 
-    if (order.shipment.status !== "AWB_ASSIGNED") {
-        throw new ApiError(
-            400,
-            "Manifest can only be generated after AWB assignment."
-        );
-    }
 
     if (!order.shipment.awbCode) {
         throw new ApiError(
@@ -79,12 +80,36 @@ export const generateManifestForOrder = async (orderId) => {
 //     ],
 // });
 
-const manifest = await printManifest({
-    order_ids: [
-        Number(order.shipment.shiprocketOrderId),
-    ],
-});
+///----trying better approach
+// const manifest = await printManifest({
+//     order_ids: [
+//         Number(order.shipment.shiprocketOrderId),
+//     ],
+// });
 
+let manifest;
+
+try {
+
+    manifest = await generateManifest({
+        shipment_id: [
+            Number(order.shipment.shiprocketShipmentId),
+        ],
+    });
+
+} catch (error) {
+
+    console.log(
+        "Generate Manifest failed, trying Print Manifest..."
+    );
+
+    manifest = await printManifest({
+        order_ids: [
+            Number(order.shipment.shiprocketOrderId),
+        ],
+    });
+
+}
 
 console.log("Manifest Object:");
 console.log(manifest);

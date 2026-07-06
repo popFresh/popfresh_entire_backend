@@ -27,8 +27,36 @@ export const schedulePickup = async (payload) => {
         return mapPickupResponse(data);
 
     } catch (error) {
+        const message = error.response?.data?.message;
 
-        handleShiprocketError(error);
+if (
+    message &&
+    message.toLowerCase().includes("already in pickup queue")
+) {
+    // return {
+    //     pickupScheduled: true,
+    //     pickupDate: new Date(),
+    //     rawResponse: error.response.data,
+    // };
+
+    return {
+
+    pickupScheduled: true,
+
+    pickupDate: new Date(),
+
+    pickupToken: null,
+
+    shiprocketStatus: 1,
+
+    rawResponse: error.response.data,
+
+};
+}
+
+handleShiprocketError(error);
+
+        
 
     }
 

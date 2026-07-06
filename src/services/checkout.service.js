@@ -3,7 +3,7 @@ import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 import razorpay from "../lib/razorpay.js";
 import ApiError from "../utils/ApiError.js";
-
+import notificationService from "./notification/orderNotification.service.js";
 export const createRazorpayOrder = async (data) => {
 
   try {
@@ -458,12 +458,15 @@ if (pricing.coupon) {
 
         verified: true,
 
-        receipt: order.receipt,
+        // For frontend (backward compatibility)
+  receipt: order.receipt,
+  orderId: order.id,
+  status: order.status,
 
-        orderId: order.id,
-
-        status: order.status,
-
+  // For notification services
+         order,
+         customer: existingCustomer,
+         address: savedAddress,
         // customer: existingCustomer,
 
         // address: savedAddress,
@@ -476,6 +479,13 @@ if (pricing.coupon) {
 
   );
 
+  try {
+  await notificationService.sendOrderConfirmation(result);
+} catch (error) {
+  console.error("Order notification failed:",
+     error.response?.data || error.message
+  );
+}
   return result;
 
 };

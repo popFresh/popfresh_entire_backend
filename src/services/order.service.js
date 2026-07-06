@@ -1,15 +1,27 @@
 import prisma from "../lib/prisma.js";
 import ApiError from "../utils/ApiError.js";
+import orderNotificationService from "./notification/orderNotification.service.js";
 
 const VALID_ORDER_TRANSITIONS = {
   PENDING: ["PROCESSING", "CANCELLED"],
   PROCESSING: ["PACKED", "CANCELLED"],
   PACKED: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
+  SHIPPED: ["OUT_FOR_DELIVERY"],
+  OUT_FOR_DELIVERY: ["DELIVERED"],
   DELIVERED: ["RETURNED"],
   CANCELLED: [],
   RETURNED: [],
 };
+
+// const VALID_ORDER_TRANSITIONS = {
+//   PENDING: ["PROCESSING", "CANCELLED"],
+//   PROCESSING: ["PACKED", "CANCELLED"],
+//   PACKED: ["SHIPPED", "CANCELLED"],
+//   SHIPPED: ["DELIVERED"],
+//   DELIVERED: ["RETURNED"],
+//   CANCELLED: [],
+//   RETURNED: [],
+// };
 
 // ===============================================
 // GET ORDER BY ID (Internal Helper)
@@ -451,6 +463,10 @@ if (!VALID_ORDER_TRANSITIONS[order.status].includes(status)) {
       updateData.shippedAt = new Date();
       break;
 
+      case "OUT_FOR_DELIVERY":
+  updateData.outForDeliveryAt = new Date();
+  break;
+
     case "DELIVERED":
       updateData.deliveredAt = new Date();
       break;
@@ -598,7 +614,37 @@ await tx.orderStatusHistory.create({
 
   });
 
-  return updatedOrder;
+  const notificationData = {
+  order: updatedOrder,
+  customer: updatedOrder.customer,
+};
 
+  try {
+  switch (updatedOrder.status) {
+
+    case "PACKED":
+      await orderNotificationService.sendOrderPacked(notificationData);
+      break;
+
+    case "SHIPPED":
+      await orderNotificationService.sendOrderShipped(notificationData);
+      break;
+
+    case "OUT_FOR_DELIVERY":
+      await orderNotificationService.sendOutForDelivery(notificationData);
+      break;
+
+    case "DELIVERED":
+      await orderNotificationService.sendOrderDelivered(notificationData);
+      break;
+  }
+} catch (error) {
+  console.error(
+    "Order notification failed:",
+    error.response?.data || error.message
+  );
+}
+
+return updatedOrder;
 };
 

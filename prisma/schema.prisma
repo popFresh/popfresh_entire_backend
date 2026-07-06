@@ -126,6 +126,7 @@ model Order {
   returnReason     String?
   returnedAt       DateTime?
   shippedAt        DateTime?
+  outForDeliveryAt DateTime?
   customer         Customer             @relation(fields: [customerId], references: [id])
   orderItems       OrderItem[]
   statusHistory    OrderStatusHistory[]
@@ -265,6 +266,7 @@ enum OrderStatus {
   PROCESSING
   PACKED
   SHIPPED
+  OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
   RETURNED
