@@ -1,5 +1,5 @@
 import { Router } from "express";
-
+import authenticate from "../../../middlewares/auth.middleware.js";
 import {
   getAllCustomersController,
   getCustomerByIdController,
@@ -9,6 +9,7 @@ import {
 
 const router = Router();
 
+router.use(authenticate);
 // ==============================================
 // GET CUSTOMER DASHBOARD STATS
 // GET /api/v1/customers/stats

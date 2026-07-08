@@ -4,6 +4,7 @@ import prisma from "../lib/prisma.js";
 import razorpay from "../lib/razorpay.js";
 import ApiError from "../utils/ApiError.js";
 import notificationService from "./notification/orderNotification.service.js";
+import { createNotification } from "./notification.service.js";
 export const createRazorpayOrder = async (data) => {
 
   try {
@@ -479,6 +480,29 @@ if (pricing.coupon) {
 
   );
 
+  // ========================================
+// Admin Dashboard Notification
+// ========================================
+
+try {
+  await createNotification({
+    type: "ORDER",
+    title: "New Order Received",
+    message: `${result.order.receipt} • ₹${Number(result.order.total).toLocaleString("en-IN")}`,
+    route: "/orders",
+    entityId: result.order.id,
+    priority: "NORMAL",
+  });
+} catch (error) {
+  console.error(
+    "Admin notification failed:",
+    error.message
+  );
+}
+
+// ========================================
+// Customer Email / WhatsApp
+// ========================================
   try {
   await notificationService.sendOrderConfirmation(result);
 } catch (error) {

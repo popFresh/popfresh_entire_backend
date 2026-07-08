@@ -1,5 +1,5 @@
 import { Router } from "express";
-
+import authenticate from "../../../middlewares/auth.middleware.js";
 import {
   getAllOrdersController,
   getOrderByIdController,
@@ -17,6 +17,7 @@ import {
 } from "../../../controllers/order.controller.js";
 
 const router = Router();
+router.use(authenticate);
 
 // ==============================================
 // GET ORDER DASHBOARD STATS

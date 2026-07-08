@@ -1,4 +1,5 @@
 import express from "express";
+import authenticate from "../../../middlewares/auth.middleware.js";
 import { 
     testShiprocketConnection,
     getServiceability,
@@ -6,6 +7,8 @@ import {
 } from "../../../controllers/logistics/logistics.controller.js";
 
 const router = express.Router();
+
+router.use(authenticate);
 
 router.get("/test-connection", testShiprocketConnection);
 router.get("/serviceability", getServiceability);

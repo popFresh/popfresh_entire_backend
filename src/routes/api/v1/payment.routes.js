@@ -1,5 +1,5 @@
 import { Router } from "express";
-
+import authenticate from "../../../middlewares/auth.middleware.js";
 import {
   getStats,
   getPayments,
@@ -7,6 +7,7 @@ import {
 } from "../../../controllers/payment.controller.js";
 
 const router = Router();
+router.use(authenticate);
 
 //////////////////////////////////////////////////////////////
 // PAYMENT STATS

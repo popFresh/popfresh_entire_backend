@@ -1,22 +1,48 @@
-import { baseTemplate } from "./baseTemplate.js";
+import { baseEmail } from "./baseEmail.js";
 
-export const orderPackedTemplate = (order)=>
-baseTemplate({
-heading:"Your Order Has Been Packed 📦",
+export const orderPackedTemplate = ({
+  receipt,
+  trackingUrl,
+}) =>
+  baseEmail({
+    badge: "ORDER PACKED",
 
-content:`
+    heading: "Your Order Has Been Packed!",
 
-<p>Good news!</p>
+    description:
+      "Great news! Your Pop Fresh order has been freshly packed and is now ready to begin its journey. Our delivery partner will be picking it up shortly, and we'll notify you as soon as it's on the way.",
 
-<p>Your order is carefully packed and ready for dispatch.</p>
+    status: "Packed",
 
-<p><strong>Order:</strong> ${order.receipt}</p>
+    delivery: "Dispatching Soon",
 
-<p>Our delivery partner will pick it up shortly.</p>
+    receipt,
 
-`,
+    buttonText: "Track My Order",
 
-buttonText:"Track Order",
-buttonUrl:`https://popfresh.in/orders/${order.receipt}`
+    buttonLink: trackingUrl,
+  });
 
-});
+
+// import { baseTemplate } from "./baseEmail.js";
+
+// export const orderPackedTemplate = (order)=>
+// baseTemplate({
+// heading:"Your Order Has Been Packed 📦",
+
+// content:`
+
+// <p>Good news!</p>
+
+// <p>Your order is carefully packed and ready for dispatch.</p>
+
+// <p><strong>Order:</strong> ${order.receipt}</p>
+
+// <p>Our delivery partner will pick it up shortly.</p>
+
+// `,
+
+// buttonText:"Track Order",
+// buttonUrl:`https://popfresh.in/orders/${order.receipt}`
+
+// });

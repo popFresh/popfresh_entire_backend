@@ -8,12 +8,71 @@ datasource db {
 }
 
 model Admin {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
+  id       String  @id @default(cuid())
+  name     String
+  email    String  @unique
+  phone    String?
+  password String
+
+  role AdminRole @default(ADMIN)
+
+  invitationsSent Invitation[]
+  passwordResets  PasswordReset[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Invitation {
+  id String @id @default(cuid())
+
+  name  String
+  email String
+
+  role AdminRole
+
+  token String @unique
+
+  invitedById String
+
+  invitedBy Admin @relation(fields: [invitedById], references: [id])
+
+  expiresAt DateTime
+
+  acceptedAt DateTime?
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+model PasswordReset {
+  id String @id @default(cuid())
+
+  token String @unique
+
+  adminId String
+
+  admin Admin @relation(fields: [adminId], references: [id])
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+
+  type      NotificationType
+
+  title     String
+  message   String
+
+  route     String
+  entityId  String?
+
+  priority  NotificationPriority @default(NORMAL)
+
+  isRead    Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 model Category {
@@ -47,10 +106,10 @@ model Product {
   cardTheme     String         @default("GREEN")
   displayOrder  Int            @default(0)
   highlights    String[]
-  length   Decimal? @db.Decimal(10,2)
-breadth  Decimal? @db.Decimal(10,2)
-height   Decimal? @db.Decimal(10,2)
   weight        Decimal?       @db.Decimal(10, 2)
+  breadth       Decimal?       @db.Decimal(10, 2)
+  height        Decimal?       @db.Decimal(10, 2)
+  length        Decimal?       @db.Decimal(10, 2)
   orderItems    OrderItem[]
   category      Category       @relation(fields: [categoryId], references: [id])
   images        ProductImage[]
@@ -256,6 +315,27 @@ model ShipmentWebhook {
   createdAt  DateTime @default(now())
 }
 
+
+enum NotificationType {
+  ORDER
+  PRODUCT
+  CUSTOMER
+  PAYMENT
+  SHIPMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+}
+
 enum ProductStatus {
   ACTIVE
   INACTIVE
@@ -266,10 +346,10 @@ enum OrderStatus {
   PROCESSING
   PACKED
   SHIPPED
-  OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
   RETURNED
+  OUT_FOR_DELIVERY
 }
 
 enum PaymentStatus {

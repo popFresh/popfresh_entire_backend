@@ -1,22 +1,48 @@
-import { baseTemplate } from "./baseTemplate.js";
+import { baseEmail } from "./baseEmail.js";
 
-export const orderDeliveredTemplate=(order)=>
-baseTemplate({
+export const orderDeliveredTemplate = ({
+  receipt,
+  orderLink,
+}) =>
+  baseEmail({
+    badge: "ORDER DELIVERED",
 
-heading:"Delivered Successfully 🎉",
+    heading: "Enjoy Every Crunch! 🌿",
 
-content:`
+    description:
+      "Your Pop Fresh order has been successfully delivered! We hope every bite brings you the perfect crunch and flavour you were looking forward to. Thank you for trusting us with your healthy snacking journey. We truly appreciate your support and can't wait to serve you again.",
 
-<p>Your order has been delivered successfully.</p>
+    status: "Delivered",
 
-<p>We hope everything arrived fresh and exactly as expected.</p>
+    delivery: "Successfully Delivered 🎉",
 
-<p>Thank you for shopping with PopFresh ❤️</p>
+    receipt,
 
-`,
+    buttonText: "View Order",
 
-buttonText:"Rate Your Experience",
+    buttonLink: orderLink,
+  });
 
-buttonUrl:`https://popfresh.in/review/${order.receipt}`
 
-});
+// import { baseTemplate } from "./baseEmail.js";
+
+// export const orderDeliveredTemplate=(order)=>
+// baseTemplate({
+
+// heading:"Delivered Successfully 🎉",
+
+// content:`
+
+// <p>Your order has been delivered successfully.</p>
+
+// <p>We hope everything arrived fresh and exactly as expected.</p>
+
+// <p>Thank you for shopping with PopFresh ❤️</p>
+
+// `,
+
+// buttonText:"Rate Your Experience",
+
+// buttonUrl:`https://popfresh.in/review/${order.receipt}`
+
+// });

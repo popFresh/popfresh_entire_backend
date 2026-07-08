@@ -1,4 +1,4 @@
-import { baseTemplate } from "./baseTemplate.js";
+import { baseTemplate } from "./baseEmail.js";
 
 export const passwordResetTemplate=(name,resetLink)=>
 baseTemplate({

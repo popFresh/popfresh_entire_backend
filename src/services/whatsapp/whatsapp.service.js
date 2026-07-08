@@ -25,7 +25,8 @@ const sendTemplate = async ({
   phone,
   template,
   values = [],
-  language = "en_US",
+   headerImage = null,
+  language = "en",
 }) => {
   try {
     const payload = {
@@ -40,18 +41,49 @@ const sendTemplate = async ({
         },
       },
     };
+const components = [];
+
+    // -------------------------
+    // Header Image (Optional)
+    // -------------------------
+    if (headerImage) {
+      components.push({
+        type: "header",
+        parameters: [
+          {
+            type: "image",
+            image: {
+              link: headerImage,
+            },
+          },
+        ],
+      });
+    }
 
     // Only attach body parameters if the template requires them
+    // if (values.length > 0) {
+    //   payload.template.components = [
+    //     {
+    //       type: "body",
+    //       parameters: values.map((value) => ({
+    //         type: "text",
+    //         text: String(value),
+    //       })),
+    //     },
+    //   ];
+    // }
     if (values.length > 0) {
-      payload.template.components = [
-        {
-          type: "body",
-          parameters: values.map((value) => ({
-            type: "text",
-            text: String(value),
-          })),
-        },
-      ];
+      components.push({
+        type: "body",
+        parameters: values.map((value) => ({
+          type: "text",
+          text: String(value),
+        })),
+      });
+    }
+
+if (components.length > 0) {
+      payload.template.components = components;
     }
 
     const response = await axios.post(BASE_URL, payload, {
@@ -78,40 +110,128 @@ const sendTemplate = async ({
  * ==========================
  */
 
-const sendOrderConfirmation = async ({ customer }) => {
+// const sendOrderConfirmation = async ({ customer }) => {
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.ORDER_CONFIRMATION,
+//   });
+// };
+
+// const sendOrderConfirmation = async ({ order, customer }) => {
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.ORDER_CONFIRMATION,
+//     values: [
+//       customer.name,
+//       order.receipt,
+//     ],
+//   });
+// };
+
+const sendOrderConfirmation = async ({ order, customer }) => {
   return sendTemplate({
     phone: customer.phone,
     template: TEMPLATES.ORDER_CONFIRMATION,
+    headerImage: "https://res.cloudinary.com/diksf0ddl/image/upload/v1783436890/pf_orderConfirmed_yx8t2d.png",
+    values: [
+      customer.name,
+      order.receipt,
+    ],
   });
 };
 
-const sendOrderPacked = async ({ customer }) => {
-    console.log("Sending PACKED WhatsApp");
-console.log(customer.phone);
+// const sendOrderPacked = async ({ customer }) => {
+//     console.log("Sending PACKED WhatsApp");
+// console.log(customer.phone);
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.ORDER_PACKED,
+//   });
+// };
+
+const sendOrderPacked = async ({ order, customer }) => {
+  console.log("Sending PACKED WhatsApp");
+  console.log(customer.phone);
+
   return sendTemplate({
     phone: customer.phone,
     template: TEMPLATES.ORDER_PACKED,
+    headerImage: "https://res.cloudinary.com/diksf0ddl/image/upload/v1783439191/pf_orderPacked_x1egib.jpg",
+    values: [
+      customer.name,
+      order.receipt,
+    ],
   });
 };
 
-const sendOrderShipped = async ({ customer }) => {
+// const sendOrderShipped = async ({ customer }) => {
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.ORDER_SHIPPED,
+//   });
+// };
+
+const sendOrderShipped = async ({ order, customer }) => {
   return sendTemplate({
     phone: customer.phone,
     template: TEMPLATES.ORDER_SHIPPED,
+    headerImage: "https://res.cloudinary.com/diksf0ddl/image/upload/v1783439388/pf_orderShipped_hlljwz.png",
+    values: [
+      customer.name,
+      order.receipt,
+    ],
   });
 };
 
-const sendOutForDelivery = async ({ customer }) => {
+// const sendOutForDelivery = async ({ customer }) => {
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.OUT_FOR_DELIVERY,
+//   });
+// };
+
+
+const sendOutForDelivery = async ({ order, customer }) => {
   return sendTemplate({
     phone: customer.phone,
     template: TEMPLATES.OUT_FOR_DELIVERY,
+    headerImage: "https://res.cloudinary.com/diksf0ddl/image/upload/v1783439563/pf_orderOutForDelivery_j35hmm.png",
+    values: [
+      customer.name,
+      order.receipt,
+    ],
   });
 };
 
-const sendDelivered = async ({ customer }) => {
+// const sendDelivered = async ({ customer }) => {
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.DELIVERED,
+//   });
+// };
+
+// const sendDelivered = async ({ order, customer }) => {
+//   return sendTemplate({
+//     phone: customer.phone,
+//     template: TEMPLATES.DELIVERED,
+//     headerImage: process.env.WHATSAPP_HEADER_IMAGE,
+//     values: [
+//       customer.name,
+//       order.receipt,
+//     ],
+//   });
+// };
+
+
+const sendDelivered = async ({ order, customer }) => {
   return sendTemplate({
     phone: customer.phone,
     template: TEMPLATES.DELIVERED,
+    headerImage: process.env.WHATSAPP_HEADER_IMAGE,
+    values: [
+      customer.name,
+      order.receipt,
+    ],
   });
 };
 

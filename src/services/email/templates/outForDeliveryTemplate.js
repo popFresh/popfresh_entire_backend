@@ -1,17 +1,24 @@
-import { baseTemplate } from "./baseTemplate.js";
+import { baseEmail } from "./baseEmail.js";
 
-export const outForDeliveryTemplate = (order) =>
-  baseTemplate({
-    heading: "Out for Delivery 🚚",
-    content: `
-      <p>Great news! Your PopFresh order is out for delivery.</p>
+export const outForDeliveryTemplate = ({
+  receipt,
+  trackingUrl,
+}) =>
+  baseEmail({
+    badge: "OUT FOR DELIVERY",
 
-      <p><strong>Order ID:</strong> ${order.orderNumber}</p>
+    heading: "Today's the Day! 🎉",
 
-      <p>Your delivery partner is on the way and your order should reach you soon.</p>
+    description:
+      "Your Pop Fresh order is out for delivery and should reach your doorstep today. We hope you're as excited as we are! Get ready to enjoy the perfect crunch with every bite.",
 
-      <p>Please keep your phone nearby in case the delivery partner needs to contact you.</p>
-    `,
-    buttonText: "Track Order",
-    buttonUrl: `https://popfresh.in/orders/${order.orderNumber}`,
+    status: "Out for Delivery",
+
+    delivery: "Expected Today",
+
+    receipt,
+
+    buttonText: "Track Live Order",
+
+    buttonLink: trackingUrl,
   });

@@ -19,12 +19,14 @@ const sendEmail = async ({ to, subject, html }) => {
 };
 
 const sendOrderConfirmation = async ({ order, customer }) => {
+    console.log("Order object:", order);
   return sendEmail({
     to: customer.email,
-    subject: `Order Confirmed • ${order.receipt}`,
+    subject: `Your Pop Fresh Order Has Been Confirmed ✅`,
     html: orderConfirmationTemplate({
-      orderNumber: order.receipt,
-      total: order.total,
+      receipt: order.receipt,
+       trackingUrl: `https://popfresh.in/track-order`,
+    //   total: order.total,
     }),
   });
 };
@@ -35,10 +37,10 @@ const sendOrderPacked = async ({ order, customer }) => {
 
   return sendEmail({
     to: customer.email,
-    subject: `Your Order Has Been Packed • ${order.receipt}`,
+    subject: `Great News! Your Order Has Been Packed 📦`,
     html: orderPackedTemplate({
       receipt: order.receipt,
-      total: order.total,
+       trackingUrl: `https://popfresh.in/track-order`,
     }),
   });
 };
@@ -46,10 +48,10 @@ const sendOrderPacked = async ({ order, customer }) => {
 const sendOrderShipped = async ({ order, customer }) => {
   return sendEmail({
     to: customer.email,
-    subject: `Your Order Has Been Shipped • ${order.receipt}`,
+    subject: `🚚 Your Pop Fresh Order Is On Its Way!`,
     html: orderShippedTemplate({
       receipt: order.receipt,
-      total: order.total,
+      trackingUrl: `https://popfresh.in/track-order`,
     }),
   });
 };
@@ -57,10 +59,10 @@ const sendOrderShipped = async ({ order, customer }) => {
 const sendOutForDelivery = async ({ order, customer }) => {
   return sendEmail({
     to: customer.email,
-    subject: `Out for Delivery • ${order.receipt}`,
+    subject: `🚛 Your Order Is Out For Delivery`,
     html: outForDeliveryTemplate({
       receipt: order.receipt,
-      total: order.total,
+      trackingUrl: `https://popfresh.in/track-order`,
     }),
   });
 };
@@ -68,10 +70,10 @@ const sendOutForDelivery = async ({ order, customer }) => {
 const sendOrderDelivered = async ({ order, customer }) => {
   return sendEmail({
     to: customer.email,
-    subject: `Order Delivered • ${order.receipt}`,
+    subject: `🎉 Your Pop Fresh Order Has Been Delivered`,
     html: orderDeliveredTemplate({
       receipt: order.receipt,
-      total: order.total,
+      trackingUrl: `https://popfresh.in/track-order`,
     }),
   });
 };
@@ -79,9 +81,9 @@ const sendOrderDelivered = async ({ order, customer }) => {
 const sendFeedbackRequest = async ({ order, customer }) => {
   return sendEmail({
     to: customer.email,
-    subject: `How was your PopFresh order?`,
+    subject: `How Did We Do? We'd Love Your Feedback 💚`,
     html: feedbackRequestTemplate({
-      receipt: order.receipt,
+      trackingUrl: `https://popfresh.in/track-order`,
     }),
   });
 };
