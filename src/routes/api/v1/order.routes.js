@@ -13,8 +13,15 @@ import {
   schedulePickupController,
   getTrackingController,
   cancelShipmentController,
-  getServiceabilityController
+  getServiceabilityController,
+  
 } from "../../../controllers/order.controller.js";
+
+import {
+  createManualShipmentController,
+  markManualShipmentOutForDeliveryController,
+  markManualShipmentDeliveredController
+} from "../../../controllers/manualShipment.controller.js";
 
 const router = Router();
 router.use(authenticate);
@@ -62,6 +69,21 @@ router.patch(
 
 
 router.post("/:id/create-shipment", createShipmentController);
+
+router.post(
+  "/:id/manual-shipment",
+  createManualShipmentController
+);
+
+router.patch(
+  "/:id/manual-shipment/out-for-delivery",
+  markManualShipmentOutForDeliveryController
+);
+
+router.patch(
+  "/:id/manual-shipment/delivered",
+  markManualShipmentDeliveredController
+);
 
 router.post(
     "/:id/assign-awb",

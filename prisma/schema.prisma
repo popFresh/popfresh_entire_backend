@@ -272,6 +272,12 @@ model Shipment {
   orderId               String             @unique
   provider              ShippingProvider   @default(SHIPROCKET)
   status                ShipmentStatus     @default(NOT_CREATED)
+  partnerName     String?
+  driverName      String?
+  driverPhone     String?
+  trackingNumber  String?
+  notes           String?
+  
   shiprocketOrderId     String?
   shiprocketShipmentId  String?
   awbCode               String?
@@ -375,6 +381,7 @@ enum ShipmentStatus {
 
 enum ShippingProvider {
   SHIPROCKET
+  MANUAL
 }
 
 enum TrackingStatus {

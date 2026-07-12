@@ -223,11 +223,11 @@ const sendOutForDelivery = async ({ order, customer }) => {
 // };
 
 
-const sendDelivered = async ({ order, customer }) => {
+const sendOrderDelivered = async ({ order, customer }) => {
   return sendTemplate({
     phone: customer.phone,
     template: TEMPLATES.DELIVERED,
-    headerImage: process.env.WHATSAPP_HEADER_IMAGE,
+    headerImage: "https://res.cloudinary.com/diksf0ddl/image/upload/v1783439676/pf_orderDelivered_1_pd7kav.png",
     values: [
       customer.name,
       order.receipt,
@@ -247,7 +247,7 @@ export default {
   sendOrderConfirmation,
   sendOrderShipped,
   sendOutForDelivery,
-  sendDelivered,
+  sendOrderDelivered,
   sendFeedback,
   sendOrderPacked
 };
