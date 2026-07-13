@@ -1,6 +1,10 @@
 import prisma from "../lib/prisma.js";
 import ApiError from "../utils/ApiError.js";
 import orderNotificationService from "./notification/orderNotification.service.js";
+import {
+  emitOrderUpdated,
+  emitDashboardUpdate,
+} from "../socket/events.js";
 
 const VALID_ORDER_TRANSITIONS = {
   PENDING: ["PROCESSING", "CANCELLED"],
@@ -13,6 +17,7 @@ const VALID_ORDER_TRANSITIONS = {
   RETURNED: [],
 };
 
+
 // const VALID_ORDER_TRANSITIONS = {
 //   PENDING: ["PROCESSING", "CANCELLED"],
 //   PROCESSING: ["PACKED", "CANCELLED"],
@@ -23,6 +28,173 @@ const VALID_ORDER_TRANSITIONS = {
 //   RETURNED: [],
 // };
 
+
+export const updateOrderStatusInternal = async (
+  tx,
+  existingOrder,
+  data,
+  options = {}
+) => {
+
+  const {
+  status,
+  cancelReason,
+  returnReason,
+  internalNote,
+} = data;
+
+const updateData = {
+    status,
+};
+
+  switch (status) {
+
+    case "PROCESSING":
+      updateData.processedAt = new Date();
+      break;
+
+    case "PACKED":
+      updateData.packedAt = new Date();
+      break;
+
+    case "SHIPPED":
+      updateData.shippedAt = new Date();
+      break;
+
+      case "OUT_FOR_DELIVERY":
+  updateData.outForDeliveryAt = new Date();
+  break;
+
+    case "DELIVERED":
+      updateData.deliveredAt = new Date();
+      break;
+
+    case "CANCELLED":
+      updateData.cancelledAt = new Date();
+      break;
+
+    case "RETURNED":
+      updateData.returnedAt = new Date();
+      break;
+
+  }
+
+
+
+  const updatedOrder = await tx.order.update({
+
+  where: {
+    id: existingOrder.id,
+  },
+
+  data: updateData,
+
+  include: {
+
+    customer: true,
+
+    payment: true,
+
+    shipment: {
+      include: {
+        trackingHistory: {
+          orderBy: {
+            eventTime: "asc",
+          },
+        },
+      },
+    },
+
+    statusHistory: {
+      orderBy: {
+        createdAt: "asc",
+      },
+    },
+
+    orderItems: {
+      include: {
+        product: {
+          include: {
+            images: true,
+          },
+        },
+      },
+    },
+
+  },
+
+});
+
+let historyNote = internalNote ?? null;
+
+if (status === "CANCELLED") {
+  historyNote = cancelReason;
+}
+
+if (status === "RETURNED") {
+  historyNote = returnReason;
+}
+
+
+const historyData = {
+  orderId: existingOrder.id,
+  status,
+  note: historyNote,
+};
+
+// console.log(historyData);
+
+await tx.orderStatusHistory.create({
+  data: historyData,
+});
+
+
+
+
+return updatedOrder;
+};
+
+export const handleOrderStatusSideEffects = async (
+  updatedOrder
+) => {
+
+  const notificationData = {
+    order: updatedOrder,
+    customer: updatedOrder.customer,
+  };
+
+  try {
+    switch (updatedOrder.status) {
+      case "PACKED":
+        await orderNotificationService.sendOrderPacked(notificationData);
+        break;
+
+      case "SHIPPED":
+        await orderNotificationService.sendOrderShipped(notificationData);
+        break;
+
+      case "OUT_FOR_DELIVERY":
+        await orderNotificationService.sendOutForDelivery(notificationData);
+        break;
+
+      case "DELIVERED":
+        await orderNotificationService.sendOrderDelivered(notificationData);
+        break;
+    }
+  } catch (error) {
+    console.error(
+      "Order notification failed:",
+      error.response?.data || error.message
+    );
+  }
+
+  try {
+    emitOrderUpdated(updatedOrder);
+    emitDashboardUpdate();
+  } catch (error) {
+    console.error("Socket emit failed:", error);
+  }
+};
 // ===============================================
 // GET ORDER BY ID (Internal Helper)
 // ===============================================
@@ -413,12 +585,6 @@ const order = await getOrderById(id);
 
 const {
   status,
-  courierName,
-  trackingNumber,
-  trackingUrl,
-  cancelReason,
-  returnReason,
-  internalNote,
 } = data;
 
 if (order.status === status) {
@@ -441,209 +607,25 @@ if (!VALID_ORDER_TRANSITIONS[order.status].includes(status)) {
   );
 }
 
-  const updateData = {
-    status,
-  };
-
-  // ==========================
-  // STATUS TIMESTAMPS
-  // ==========================
-
-  switch (status) {
-
-    case "PROCESSING":
-      updateData.processedAt = new Date();
-      break;
-
-    case "PACKED":
-      updateData.packedAt = new Date();
-      break;
-
-    case "SHIPPED":
-      updateData.shippedAt = new Date();
-      break;
-
-      case "OUT_FOR_DELIVERY":
-  updateData.outForDeliveryAt = new Date();
-  break;
-
-    case "DELIVERED":
-      updateData.deliveredAt = new Date();
-      break;
-
-    case "CANCELLED":
-      updateData.cancelledAt = new Date();
-      break;
-
-    case "RETURNED":
-      updateData.returnedAt = new Date();
-      break;
-
-  }
-
   // ==========================
   // OPTIONAL FIELDS
   // ==========================
 
-  if (courierName) {
-    updateData.courierName = courierName;
-  }
-
-  if (trackingNumber) {
-    updateData.trackingNumber = trackingNumber;
-  }
-
-  if (trackingUrl) {
-    updateData.trackingUrl = trackingUrl;
-  }
-
-  if (cancelReason) {
-    updateData.cancelReason = cancelReason;
-  }
-
-  if (returnReason) {
-    updateData.returnReason = returnReason;
-  }
-
-  if (internalNote) {
-    updateData.internalNote = internalNote;
-  }
+  
 
   // ==========================
   // TRANSACTION
   // ==========================
-
-  const updatedOrder = await prisma.$transaction(async (tx) => {
-
-    const order = await tx.order.update({
-
-      where: {
-        id,
-      },
-
-      data: updateData,
-
-      include: {
-
-        customer: true,
-
-        payment: true,
-
-        statusHistory: {
-
-          orderBy: {
-            createdAt: "asc",
-          },
-
-        },
-
-        orderItems: {
-
-          include: {
-
-            product: {
-
-              include: {
-
-                images: true,
-
-              },
-
-            },
-
-          },
-
-        },
-
-      },
-
-    });
-
-    let historyNote = internalNote ?? null;
-
-if (status === "CANCELLED") {
-  historyNote = cancelReason;
-}
-
-if (status === "RETURNED") {
-  historyNote = returnReason;
-}
-
-// console.log({
-//   status,
-//   internalNote,
-//   cancelReason,
-//   historyNote,
-// });
-
-// await tx.orderStatusHistory.create({
-//   data: {
-//     orderId: id,
-//     status,
-//     note: historyNote,
-//   },
-// });
-
-const historyData = {
-  orderId: id,
-  status,
-  note: historyNote,
-};
-
-// console.log(historyData);
-
-await tx.orderStatusHistory.create({
-  data: historyData,
+const updatedOrder = await prisma.$transaction(async (tx) => {
+  return updateOrderStatusInternal(
+    tx,
+    order,
+    data
+  );
 });
 
-    // await tx.orderStatusHistory.create({
-
-    //   data: {
-
-    //     orderId: id,
-
-    //     status,
-
-    //     note: internalNote ?? null,
-
-    //   },
-
-    // });
-
-    return order;
-
-  });
-
-  const notificationData = {
-  order: updatedOrder,
-  customer: updatedOrder.customer,
-};
-
-  try {
-  switch (updatedOrder.status) {
-
-    case "PACKED":
-      await orderNotificationService.sendOrderPacked(notificationData);
-      break;
-
-    case "SHIPPED":
-      await orderNotificationService.sendOrderShipped(notificationData);
-      break;
-
-    case "OUT_FOR_DELIVERY":
-      await orderNotificationService.sendOutForDelivery(notificationData);
-      break;
-
-    case "DELIVERED":
-      await orderNotificationService.sendOrderDelivered(notificationData);
-      break;
-  }
-} catch (error) {
-  console.error(
-    "Order notification failed:",
-    error.response?.data || error.message
-  );
-}
+  
+await handleOrderStatusSideEffects(updatedOrder);
 
 return updatedOrder;
 };

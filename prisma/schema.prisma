@@ -375,6 +375,7 @@ enum ShipmentStatus {
 
 enum ShippingProvider {
   SHIPROCKET
+  MANUAL
 }
 
 enum TrackingStatus {

@@ -21,6 +21,7 @@ import orderRoutes from "./routes/api/v1/order.routes.js";
 import customerRoutes from "./routes/api/v1/customer.routes.js"
 import paymentRoutes from "./routes/api/v1/payment.routes.js";
 import logisticsRoutes from "./routes/api/v1/logistics.routes.js";
+import shiprocketWebhookRoutes from "./routes/api/v1/shiprocketWebhook.routes.js";
 import emailRoutes from "./routes/api/v1/email.routes.js";
 import whatsappRoutes from "./routes/api/v1/whatsapp.routes.js";
 import shippingRoutes from "./routes/api/v1/shipping.routes.js";
@@ -76,6 +77,7 @@ app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/customers", customerRoutes);
 app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/logistics", logisticsRoutes);
+app.use("/api/v1/webhooks/shiprocket", shiprocketWebhookRoutes);
 app.use("/api/v1/email", emailRoutes);
 app.use("/api/v1/whatsapp", whatsappRoutes);
 app.use(

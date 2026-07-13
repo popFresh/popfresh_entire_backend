@@ -1,4 +1,12 @@
 import { calculatePricing } from "./pricing.service.js";
+import { 
+  emitCustomerCreated,
+  emitPaymentUpdated,
+  emitOrderUpdated,
+  emitDashboardUpdate,
+  emitProductUpdated 
+} from "../socket/events.js";
+
 import crypto from "crypto";
 import prisma from "../lib/prisma.js";
 import razorpay from "../lib/razorpay.js";
@@ -157,7 +165,7 @@ const receipt = `PF-${Date.now()}`;
         });
 
       // Create if doesn't exist
-
+let isNewCustomer = false;
       if (!existingCustomer) {
 
         existingCustomer =
@@ -174,7 +182,7 @@ const receipt = `PF-${Date.now()}`;
             },
 
           });
-
+            isNewCustomer = true;
       }
 
       // Save address
@@ -356,7 +364,7 @@ await Promise.all(
 // Create Payment
 // -----------------------------
 
-await tx.payment.create({
+const createdPayment = await tx.payment.create({
 
   data: {
 
@@ -382,6 +390,8 @@ await tx.payment.create({
   },
 
 });
+
+
 
 // -----------------------------
 // Reduce Product Stock
@@ -425,8 +435,10 @@ await Promise.all(
       );
 
     }
+   
 
   })
+  
 
 ); // <-- You were missing this
 
@@ -466,6 +478,8 @@ if (pricing.coupon) {
 
   // For notification services
          order,
+        payment: createdPayment,
+
          customer: existingCustomer,
          address: savedAddress,
         // customer: existingCustomer,
@@ -473,6 +487,7 @@ if (pricing.coupon) {
         // address: savedAddress,
 
         // order,
+         isNewCustomer,
 
       };
 
@@ -480,6 +495,44 @@ if (pricing.coupon) {
 
   );
 
+
+// ========================================
+// Realtime Socket Events
+// ========================================
+
+
+  try {
+  emitOrderUpdated(result.order);
+  emitPaymentUpdated(result.payment);
+  emitDashboardUpdate();
+
+for (const item of pricing.validatedItems) {
+    emitProductUpdated({
+      id: item.productId,
+    });
+  }
+
+  if (result.isNewCustomer) {
+    emitCustomerCreated(result.customer);
+  }
+
+} catch (error) {
+  console.error("Socket emit failed:", error);
+}
+
+//   if (result.isNewCustomer) {
+//   try {
+//     emitCustomerCreated(result.customer);
+//   } catch (error) {
+//     console.error("Customer socket emit failed:", error);
+//   }
+// }
+
+// try {
+//   emitPaymentUpdated(result);
+// } catch (error) {
+//   console.error("Payment socket emit failed:", error);
+// }
   // ========================================
 // Admin Dashboard Notification
 // ========================================
