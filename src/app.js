@@ -38,6 +38,8 @@ import categoryPublicRoutes from "./routes/api/v1/public/category.routes.js"
 import checkoutPublicRoutes from "./routes/api/v1/public/checkout.routes.js"
 import pricingPublicRoutes from "./routes/api/v1/public/pricing.routes.js";
 import productPublicRoutes from "./routes/api/v1/public/product.routes.js";
+import orderTrackingRoutes from "./routes/api/v1/public/orderTracking.routes.js"
+import feedbackRoutes from "./routes/api/v1/public/feedback.routes.js";
 
 dotenv.config();
 
@@ -96,7 +98,8 @@ app.use("/api/v1/public/checkout", checkoutPublicRoutes);
 app.use("/api/v1/public/coupons", couponPublicRoutes);
 app.use("/api/v1/public/pricing", pricingPublicRoutes);
 app.use("/api/v1/public/shipping-rules", shippingRulePublicRoutes);
-
+app.use("/api/v1/public", orderTrackingRoutes);
+app.use("/api/v1/public/feedback",feedbackRoutes);
 app.use(errorHandler);
 
 export default app;

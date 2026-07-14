@@ -37,3 +37,7 @@ export const emitProductDeleted = (productId) => {
 export const emitPaymentUpdated = (payment) => {
   getIO().emit("payment:updated", payment);
 };
+
+
+
+

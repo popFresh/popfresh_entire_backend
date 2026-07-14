@@ -1,7 +1,10 @@
 import prisma from "../lib/prisma.js";
 import { validateShiprocketWebhook } from "../validators/shiprocketWebhook.validator.js";
 import { updateOrderStatusInternal,handleOrderStatusSideEffects } from "./order.service.js";
-
+import {
+  emitOrderUpdated,
+  emitDashboardUpdate,
+} from "../socket/events.js";
 // If you later refactor updateOrderStatus into a reusable function,
 // import it here instead of duplicating logic.
 // import { updateOrderStatusInternal } from "./order.service.js";
@@ -218,12 +221,25 @@ const statusMapping =
     shiprocketStatus?.toUpperCase()
   ];
 
-if (!statusMapping) {
+  if (!statusMapping) {
   console.warn(
     `Unhandled Shiprocket status: ${shiprocketStatus}`
   );
   return;
 }
+
+  if (
+  shipment.status === statusMapping.shipment &&
+  shipment.order.status === statusMapping.order
+) {
+  console.log(
+    `Duplicate webhook ignored for Order ${shipment.order.receipt}`
+  );
+
+  return;
+}
+
+
 
 let updatedOrder = shipment.order;
 
@@ -301,15 +317,55 @@ if (
 
 try {
   await handleOrderStatusSideEffects(updatedOrder);
+  
+  
 } catch (error) {
   console.error(
     "Order side effects failed:",
     error
   );
 }
+
+const latestOrder = await prisma.order.findUnique({
+  where: {
+    id: updatedOrder.id,
+  },
+  include: {
+    customer: true,
+    payment: true,
+    shipment: {
+      include: {
+        trackingHistory: {
+          orderBy: {
+            eventTime: "asc",
+          },
+        },
+      },
+    },
+    statusHistory: {
+      orderBy: {
+        createdAt: "asc",
+      },
+    },
+    orderItems: {
+      include: {
+        product: {
+          include: {
+            images: true,
+          },
+        },
+      },
+    },
+  },
+});
+
+emitOrderUpdated(latestOrder);
+emitDashboardUpdate();
+
 console.log(
   `Shiprocket webhook processed for Order ${shipment.order.receipt}`
 );
+
      }catch (error) {
 
     console.error(
@@ -320,5 +376,6 @@ console.log(
     throw error;
 
   }
+  
 
 };

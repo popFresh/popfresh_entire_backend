@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma.js";
 import ApiError from "../utils/ApiError.js";
+import { emitOrderUpdated,emitDashboardUpdate } from "../socket/events.js";
 import orderNotificationService from "./notification/orderNotification.service.js";
 // ==========================================
 // CREATE MANUAL SHIPMENT
@@ -59,8 +60,13 @@ export const createManualShipment = async (orderId, data) => {
   // ==========================================
   // CREATE MANUAL SHIPMENT
   // ==========================================
+const shipment = await prisma.$transaction(async (tx) => {
 
-  const shipment = await prisma.shipment.create({
+  // ==========================================
+  // CREATE MANUAL SHIPMENT
+  // ==========================================
+
+  const shipment = await tx.shipment.create({
     data: {
       orderId,
 
@@ -79,7 +85,72 @@ export const createManualShipment = async (orderId, data) => {
     },
   });
 
+  // ==========================================
+  // UPDATE ORDER -> SHIPPED
+  // ==========================================
+
+  await tx.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: "SHIPPED",
+      shippedAt: new Date(),
+    },
+  });
+
+  // ==========================================
+  // ORDER HISTORY
+  // ==========================================
+
+  await tx.orderStatusHistory.create({
+    data: {
+      orderId,
+      status: "SHIPPED",
+      note: "Manual shipment created.",
+    },
+  });
+
   return shipment;
+
+});
+const updatedOrder = await prisma.order.findUnique({
+  where: {
+    id: orderId,
+  },
+  include: {
+    customer: true,
+    payment: true,
+    shipment: {
+      include: {
+        trackingHistory: {
+          orderBy: {
+            eventTime: "asc",
+          },
+        },
+      },
+    },
+    statusHistory: {
+      orderBy: {
+        createdAt: "asc",
+      },
+    },
+    orderItems: {
+      include: {
+        product: {
+          include: {
+            images: true,
+          },
+        },
+      },
+    },
+  },
+});
+
+emitOrderUpdated(updatedOrder);
+emitDashboardUpdate();
+
+return shipment;
 };
 
 // ==========================================
@@ -137,12 +208,12 @@ export const markManualShipmentOutForDelivery = async (
     );
   }
 
-  if (order.status !== "PACKED") {
-    throw new ApiError(
-      400,
-      "Only packed orders can be marked Out For Delivery."
-    );
-  }
+ if (order.status !== "SHIPPED") {
+  throw new ApiError(
+    400,
+    "Only shipped orders can be marked Out For Delivery."
+  );
+}
 
   // ==========================================
   // TRANSACTION
@@ -227,14 +298,53 @@ export const markManualShipmentOutForDelivery = async (
 
 }
 
+const updatedOrder = await prisma.order.findUnique({
+  where: {
+    id: orderId,
+  },
+  include: {
+    customer: true,
+    payment: true,
+    shipment: {
+      include: {
+        trackingHistory: {
+          orderBy: {
+            eventTime: "asc",
+          },
+        },
+      },
+    },
+    statusHistory: {
+      orderBy: {
+        createdAt: "asc",
+      },
+    },
+    orderItems: {
+      include: {
+        product: {
+          include: {
+            images: true,
+          },
+        },
+      },
+    },
+  },
+});
+
+emitOrderUpdated(updatedOrder);
+emitDashboardUpdate();
+
+
+
 return updatedShipment;
 
 };
 
 
 
-
-
+// ==========================================
+// MARK MANUAL SHIPMENT DELIVERED
+// ==========================================
 
 export const markManualShipmentDelivered = async (
   orderId,
@@ -242,16 +352,13 @@ export const markManualShipmentDelivered = async (
 ) => {
 
   const order = await prisma.order.findUnique({
-
     where: {
       id: orderId,
     },
-
     include: {
       customer: true,
       shipment: true,
     },
-
   });
 
   if (!order) {
@@ -292,67 +399,46 @@ export const markManualShipmentDelivered = async (
     async (tx) => {
 
       await tx.order.update({
-
         where: {
           id: orderId,
         },
-
         data: {
-
           status: "DELIVERED",
-
           deliveredAt: new Date(),
-
         },
-
       });
 
       const shipment = await tx.shipment.update({
-
         where: {
           orderId,
         },
-
         data: {
           status: "DELIVERED",
         },
-
         include: {
           order: true,
         },
-
       });
 
       await tx.orderStatusHistory.create({
-
         data: {
-
           orderId,
-
           status: "DELIVERED",
-
           note:
             data.notes ||
             "Manual shipment marked as Delivered.",
-
         },
-
       });
 
       return shipment;
-
     }
-
   );
 
   try {
 
     await orderNotificationService.sendOrderDelivered({
-
       order: updatedShipment.order,
-
       customer: order.customer,
-
     });
 
   } catch (error) {
@@ -364,6 +450,44 @@ export const markManualShipmentDelivered = async (
 
   }
 
+  const updatedOrder = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+    include: {
+      customer: true,
+      payment: true,
+      shipment: {
+        include: {
+          trackingHistory: {
+            orderBy: {
+              eventTime: "asc",
+            },
+          },
+        },
+      },
+      statusHistory: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      orderItems: {
+        include: {
+          product: {
+            include: {
+              images: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  emitOrderUpdated(updatedOrder);
+  emitDashboardUpdate();
+
   return updatedShipment;
 
 };
+
+

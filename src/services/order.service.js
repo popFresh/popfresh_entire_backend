@@ -11,7 +11,7 @@ const VALID_ORDER_TRANSITIONS = {
   PROCESSING: ["PACKED", "CANCELLED"],
   PACKED: ["SHIPPED", "CANCELLED"],
   SHIPPED: ["OUT_FOR_DELIVERY"],
-  OUT_FOR_DELIVERY: ["DELIVERED"],
+  OUT_FOR_DELIVERY: ["DELIVERED","CANCELLED"],
   DELIVERED: ["RETURNED"],
   CANCELLED: [],
   RETURNED: [],
@@ -72,6 +72,20 @@ const updateData = {
     case "CANCELLED":
       updateData.cancelledAt = new Date();
       break;
+
+      if (
+  status === "CANCELLED" &&
+  existingOrder.shipment
+) {
+  await tx.shipment.update({
+    where: {
+      id: existingOrder.shipment.id,
+    },
+    data: {
+      status: "CANCELLED",
+    },
+  });
+}
 
     case "RETURNED":
       updateData.returnedAt = new Date();

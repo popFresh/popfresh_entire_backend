@@ -190,10 +190,26 @@ model Order {
   orderItems       OrderItem[]
   statusHistory    OrderStatusHistory[]
   payment          Payment?
+  feedback Feedback?
   shipment         Shipment?
 
   @@index([customerId])
   @@index([status])
+}
+
+
+model Feedback {
+  id        String   @id @default(cuid())
+
+  orderId   String   @unique
+
+  rating    Int
+
+  message   String?
+
+  createdAt DateTime @default(now())
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {

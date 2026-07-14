@@ -153,19 +153,32 @@ const receipt = `PF-${Date.now()}`;
 
       // Find customer
 
-      let existingCustomer =
-        await tx.customer.findUnique({
-
-          where: {
-
-            phone: customer.phone,
-
-          },
-
-        });
-
-      // Create if doesn't exist
+let existingCustomer = null;
 let isNewCustomer = false;
+
+if (customer.email) {
+
+  existingCustomer =
+    await tx.customer.findUnique({
+      where: {
+        email: customer.email,
+      },
+    });
+
+}
+
+if (!existingCustomer) {
+
+  existingCustomer =
+    await tx.customer.findUnique({
+      where: {
+        phone: customer.phone,
+      },
+    });
+
+}
+      // Create if doesn't exist
+
       if (!existingCustomer) {
 
         existingCustomer =
@@ -184,6 +197,32 @@ let isNewCustomer = false;
           });
             isNewCustomer = true;
       }
+
+      // ----------------------------------
+// Update customer details if changed
+// ----------------------------------
+
+if (!isNewCustomer) {
+
+  existingCustomer = await tx.customer.update({
+
+    where: {
+      id: existingCustomer.id,
+    },
+
+    data: {
+
+      name: customer.name,
+
+      email: customer.email || null,
+
+      phone: customer.phone,
+
+    },
+
+  });
+
+}
 
       // Save address
 
