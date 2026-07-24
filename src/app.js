@@ -84,7 +84,7 @@ app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/customers", customerRoutes);
 app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/logistics", logisticsRoutes);
-app.use("/api/v1/webhooks/shiprocket", shiprocketWebhookRoutes);
+app.use("/api/v1/webhooks/logistics", shiprocketWebhookRoutes);
 app.use("/api/v1/email", emailRoutes);
 app.use("/api/v1/whatsapp", whatsappRoutes);
 app.use(
