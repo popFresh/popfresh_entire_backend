@@ -54,65 +54,142 @@ const SHIPROCKET_STATUS_MAP = {
     order: "RETURNED",
   },
 
-  CANCELLED: {
-    shipment: "CANCELLED",
-    tracking: "CANCELLED",
-    order: "CANCELLED",
-  },
+  CANCELED: {
+  shipment: "CANCELLED",
+  tracking: "CANCELLED",
+  order: "CANCELLED",
+},
+
+CANCELLED: {
+  shipment: "CANCELLED",
+  tracking: "CANCELLED",
+  order: "CANCELLED",
+},
 };
+
+// const findShipment = async (data) => {
+//   return prisma.shipment.findFirst({
+//     where: {
+//       OR: [
+//         data.awb
+//           ? {
+//               awbCode: String(data.awb),
+//             }
+//           : undefined,
+
+//         data.shipment_id
+//           ? {
+//               shiprocketShipmentId: String(data.shipment_id),
+//             }
+//           : undefined,
+//       ].filter(Boolean),
+//     },
+
+//     include: {
+//   order: {
+//     include: {
+//       customer: true,
+//       payment: true,
+//       shipment: {
+//         include: {
+//           trackingHistory: {
+//             orderBy: {
+//               eventTime: "asc",
+//             },
+//           },
+//         },
+//       },
+//       statusHistory: {
+//         orderBy: {
+//           createdAt: "asc",
+//         },
+//       },
+//       orderItems: {
+//         include: {
+//           product: {
+//             include: {
+//               images: true,
+//             },
+//           },
+//         },
+//       },
+//     },
+//   },
+// },
+//   });
+// };
+
 
 const findShipment = async (data) => {
+  const conditions = [];
+
+  if (data.awb && String(data.awb).trim()) {
+    conditions.push({
+      awbCode: String(data.awb),
+    });
+  }
+
+  if (data.shipment_id && String(data.shipment_id).trim()) {
+    conditions.push({
+      shiprocketShipmentId: String(data.shipment_id),
+    });
+  }
+
+  if (data.sr_order_id && String(data.sr_order_id).trim()) {
+    conditions.push({
+      shiprocketOrderId: String(data.sr_order_id),
+    });
+  }
+
+  if (data.order_id && String(data.order_id).trim()) {
+    conditions.push({
+      order: {
+        receipt: String(data.order_id),
+      },
+    });
+  }
+
+  if (!conditions.length) {
+    return null;
+  }
+
   return prisma.shipment.findFirst({
     where: {
-      OR: [
-        data.awb
-          ? {
-              awbCode: String(data.awb),
-            }
-          : undefined,
-
-        data.shipment_id
-          ? {
-              shiprocketShipmentId: String(data.shipment_id),
-            }
-          : undefined,
-      ].filter(Boolean),
+      OR: conditions,
     },
-
     include: {
-  order: {
-    include: {
-      customer: true,
-      payment: true,
-      shipment: {
+      order: {
         include: {
-          trackingHistory: {
-            orderBy: {
-              eventTime: "asc",
-            },
-          },
-        },
-      },
-      statusHistory: {
-        orderBy: {
-          createdAt: "asc",
-        },
-      },
-      orderItems: {
-        include: {
-          product: {
+          customer: true,
+          payment: true,
+          shipment: {
             include: {
-              images: true,
+              trackingHistory: {
+                orderBy: {
+                  eventTime: "asc",
+                },
+              },
+            },
+          },
+          statusHistory: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+          orderItems: {
+            include: {
+              product: {
+                include: {
+                  images: true,
+                },
+              },
             },
           },
         },
       },
     },
-  },
-},
   });
 };
-
 
 const updateShipment = async (
   tx,
@@ -146,9 +223,13 @@ const createShipmentTracking = async (
   statusMapping
 ) => {
 
-  const eventTime = data.event_time
-    ? new Date(data.event_time)
-    : new Date();
+  // const eventTime = data.event_time
+  //   ? new Date(data.event_time)
+  //   : new Date();
+
+  const eventTime = data.current_timestamp
+  ? new Date(data.current_timestamp)
+  : new Date();
 
   const existingTracking =
     await tx.shipmentTracking.findFirst({
@@ -195,19 +276,35 @@ console.dir(payload, { depth: null });
 console.log("========================================");
   const validation = validateShiprocketWebhook(payload);
 
+  // if (!validation.success) {
+  //   console.error("Invalid Shiprocket webhook", validation.errors);
+  //   return;
+  // }
+
   if (!validation.success) {
-    console.error("Invalid Shiprocket webhook", validation.errors);
-    return;
-  }
+  console.error(
+    "Invalid Shiprocket webhook",
+    validation.error.flatten()
+  );
+  return;
+}
 
   const data = validation.data;
 const shipment = await findShipment(data);
 
   if (!shipment) {
-    console.warn(
-      "Shipment not found for webhook",
-      data.awb || data.shipment_id
-    );
+    // console.warn(
+    //   "Shipment not found for webhook",
+    //   data.awb || data.shipment_id
+    // );
+
+
+    console.warn("Shipment not found", {
+  awb: data.awb,
+  shipmentId: data.shipment_id,
+  srOrderId: data.sr_order_id,
+  orderId: data.order_id,
+});
     return;
   }
 
