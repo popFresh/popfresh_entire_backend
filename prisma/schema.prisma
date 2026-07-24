@@ -400,6 +400,8 @@ enum ShippingProvider {
   MANUAL
 }
 
+
+
 enum TrackingStatus {
   CREATED
   AWB_ASSIGNED
@@ -415,4 +417,39 @@ enum TrackingStatus {
 enum DiscountType {
   PERCENTAGE
   FLAT
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}
+
+enum LogCategory {
+  SYSTEM
+  DATABASE
+  PAYMENT
+  ORDER
+  EMAIL
+  SHIPROCKET
+  WHATSAPP
+  CONTACT
+  AUTH
+}
+
+
+
+model TechLog {
+  id         String      @id @default(cuid())
+  level      LogLevel
+  category   LogCategory
+  title      String
+  message    String
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([level])
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
 }

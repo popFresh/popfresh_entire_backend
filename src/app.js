@@ -29,7 +29,7 @@ import teamRoutes from "./routes/api/v1/team.routes.js";
 import dashboardRoutes from "./routes/api/v1/dashboard.routes.js";
 import searchRoutes from "./routes/api/v1/search.routes.js";
 import notificationRoutes from "./routes/api/v1/notification.route.js";
-
+import techRoutes from "./routes/api/v1/tech.routes.js";
 
 // PUBLIC ROUTES 
 import couponPublicRoutes from "./routes/api/v1/public/coupon.routes.js";
@@ -40,6 +40,9 @@ import pricingPublicRoutes from "./routes/api/v1/public/pricing.routes.js";
 import productPublicRoutes from "./routes/api/v1/public/product.routes.js";
 import orderTrackingRoutes from "./routes/api/v1/public/orderTracking.routes.js"
 import feedbackRoutes from "./routes/api/v1/public/feedback.routes.js";
+import contactRoutes from "./routes/api/v1/public/contact.routes.js";
+
+
 
 dotenv.config();
 
@@ -88,6 +91,8 @@ app.use(
     shippingRoutes
 );
 
+app.use("/api/v1/tech",techRoutes);
+
 // ============================
 // Public Routes
 // ============================
@@ -100,6 +105,8 @@ app.use("/api/v1/public/pricing", pricingPublicRoutes);
 app.use("/api/v1/public/shipping-rules", shippingRulePublicRoutes);
 app.use("/api/v1/public", orderTrackingRoutes);
 app.use("/api/v1/public/feedback",feedbackRoutes);
+app.use("/api/v1/public/contact", contactRoutes);
+
 app.use(errorHandler);
 
 export default app;

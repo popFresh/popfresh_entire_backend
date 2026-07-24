@@ -314,6 +314,58 @@ const sendFeedbackRequest = async (data) => {
   }
 };
 
+// =====================================================
+// ORDER CANCELLED
+// =====================================================
+
+const sendOrderCancelled = async (data) => {
+  try {
+    await emailService.sendOrderCancelled(data);
+
+    await addOrderActivity({
+      orderId: data.order.id,
+      status: data.order.status,
+      note: "📧 Cancelled email sent successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "Email notification failed:",
+      error.response?.data || error.message
+    );
+
+    await addOrderActivity({
+      orderId: data.order.id,
+      status: data.order.status,
+      note: `❌ Cancelled email failed.\nReason: ${
+        error.response?.data?.message || error.message
+      }`,
+    });
+  }
+
+  try {
+    await whatsappService.sendOrderCancelled(data);
+
+    await addOrderActivity({
+      orderId: data.order.id,
+      status: data.order.status,
+      note: "📱 Cancelled WhatsApp sent successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "WhatsApp notification failed:",
+      error.response?.data || error.message
+    );
+
+    await addOrderActivity({
+      orderId: data.order.id,
+      status: data.order.status,
+      note: `❌ Cancelled WhatsApp failed.\nReason: ${
+        error.response?.data?.message || error.message
+      }`,
+    });
+  }
+};
+
 export default {
   sendOrderConfirmation,
   sendOrderPacked,
@@ -321,6 +373,7 @@ export default {
   sendOutForDelivery,
   sendOrderDelivered,
   sendFeedbackRequest,
+  sendOrderCancelled
 };
 
 // import whatsappService from "../whatsapp/whatsapp.service.js";

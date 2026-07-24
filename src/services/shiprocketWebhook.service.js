@@ -9,6 +9,8 @@ import {
 // import it here instead of duplicating logic.
 // import { updateOrderStatusInternal } from "./order.service.js";
 
+import techService from "./tech.service.js";
+
 const SHIPROCKET_STATUS_MAP = {
   "AWB ASSIGNED": {
     shipment: "AWB_ASSIGNED",
@@ -222,9 +224,14 @@ const statusMapping =
   ];
 
   if (!statusMapping) {
-  console.warn(
-    `Unhandled Shiprocket status: ${shiprocketStatus}`
-  );
+  await techService.warn({
+  category: "SHIPROCKET",
+  title: "Unhandled Shiprocket Status",
+  message: `Unhandled status: ${shiprocketStatus}`,
+  metadata: {
+    payload,
+  },
+});
   return;
 }
 
@@ -317,13 +324,17 @@ if (
 
 try {
   await handleOrderStatusSideEffects(updatedOrder);
-  
-  
 } catch (error) {
-  console.error(
-    "Order side effects failed:",
-    error
-  );
+  await techService.error({
+    category: "SHIPROCKET",
+    title: "Order Side Effects Failed",
+    message: error.message,
+    metadata: {
+      orderId: updatedOrder.id,
+      receipt: updatedOrder.receipt,
+      stack: error.stack,
+    },
+  });
 }
 
 const latestOrder = await prisma.order.findUnique({
@@ -366,16 +377,19 @@ console.log(
   `Shiprocket webhook processed for Order ${shipment.order.receipt}`
 );
 
-     }catch (error) {
+     } catch (error) {
+  await techService.error({
+    category: "SHIPROCKET",
+    title: "Shiprocket Webhook Processing Failed",
+    message: error.message,
+    metadata: {
+      payload,
+      stack: error.stack,
+    },
+  });
 
-    console.error(
-      "Shiprocket webhook processing failed:",
-      error
-    );
-
-    throw error;
-
-  }
+  throw error;
+}
   
 
 };

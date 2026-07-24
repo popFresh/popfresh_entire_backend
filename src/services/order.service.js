@@ -70,29 +70,25 @@ const updateData = {
       break;
 
     case "CANCELLED":
-      updateData.cancelledAt = new Date();
-      break;
+  updateData.cancelledAt = new Date();
 
-      if (
-  status === "CANCELLED" &&
-  existingOrder.shipment
-) {
-  await tx.shipment.update({
-    where: {
-      id: existingOrder.shipment.id,
-    },
-    data: {
-      status: "CANCELLED",
-    },
-  });
-}
-
-    case "RETURNED":
-      updateData.returnedAt = new Date();
-      break;
-
+  if (existingOrder.shipment) {
+    await tx.shipment.update({
+      where: {
+        id: existingOrder.shipment.id,
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
   }
 
+  break;
+
+case "RETURNED":
+  updateData.returnedAt = new Date();
+  break;
+}
 
 
   const updatedOrder = await tx.order.update({
@@ -194,6 +190,12 @@ export const handleOrderStatusSideEffects = async (
       case "DELIVERED":
         await orderNotificationService.sendOrderDelivered(notificationData);
         break;
+
+        case "CANCELLED":
+  await orderNotificationService.sendOrderCancelled(
+    notificationData
+  );
+  break;
     }
   } catch (error) {
     console.error(
