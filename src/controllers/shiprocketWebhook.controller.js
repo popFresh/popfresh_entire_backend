@@ -8,21 +8,21 @@ export const handleShiprocketWebhook = async (
 
   try {
 
-    const apiKey = req.headers["x-api-key"];
+    // const apiKey = req.headers["x-api-key"];
 
-    if (
-      apiKey !== process.env.SHIPROCKET_WEBHOOK_SECRET
-    ) {
+    // if (
+    //   apiKey !== process.env.SHIPROCKET_WEBHOOK_SECRET
+    // ) {
 
-      return res.status(401).json({
+    //   return res.status(401).json({
 
-        success: false,
+    //     success: false,
 
-        message: "Unauthorized webhook.",
+    //     message: "Unauthorized webhook.",
 
-      });
+    //   });
 
-    }
+    // }
 
     await processShiprocketWebhook(req.body);
 
