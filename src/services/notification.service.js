@@ -1,7 +1,7 @@
 // src/services/notification.service.js
 
 import prisma from "../lib/prisma.js";
-
+import { emitNotification } from "../socket/events.js";
 // ==============================================
 // Create Notification
 // ==============================================
@@ -14,7 +14,7 @@ export const createNotification = async ({
   entityId,
   priority = "NORMAL",
 }) => {
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       type,
       title,
@@ -24,6 +24,14 @@ export const createNotification = async ({
       priority,
     },
   });
+
+  try {
+    emitNotification(notification);
+  } catch (error) {
+    console.error("Socket notification emit failed:", error);
+  }
+
+  return notification;
 };
 
 // ==============================================

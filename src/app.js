@@ -21,6 +21,7 @@ import orderRoutes from "./routes/api/v1/order.routes.js";
 import customerRoutes from "./routes/api/v1/customer.routes.js"
 import paymentRoutes from "./routes/api/v1/payment.routes.js";
 import logisticsRoutes from "./routes/api/v1/logistics.routes.js";
+import shiprocketWebhookRoutes from "./routes/api/v1/shiprocketWebhook.routes.js";
 import emailRoutes from "./routes/api/v1/email.routes.js";
 import whatsappRoutes from "./routes/api/v1/whatsapp.routes.js";
 import shippingRoutes from "./routes/api/v1/shipping.routes.js";
@@ -28,6 +29,7 @@ import teamRoutes from "./routes/api/v1/team.routes.js";
 import dashboardRoutes from "./routes/api/v1/dashboard.routes.js";
 import searchRoutes from "./routes/api/v1/search.routes.js";
 import notificationRoutes from "./routes/api/v1/notification.route.js";
+import techRoutes from "./routes/api/v1/tech.routes.js";
 
 
 // PUBLIC ROUTES 
@@ -37,6 +39,11 @@ import categoryPublicRoutes from "./routes/api/v1/public/category.routes.js"
 import checkoutPublicRoutes from "./routes/api/v1/public/checkout.routes.js"
 import pricingPublicRoutes from "./routes/api/v1/public/pricing.routes.js";
 import productPublicRoutes from "./routes/api/v1/public/product.routes.js";
+import orderTrackingRoutes from "./routes/api/v1/public/orderTracking.routes.js"
+import feedbackRoutes from "./routes/api/v1/public/feedback.routes.js";
+import contactRoutes from "./routes/api/v1/public/contact.routes.js";
+
+
 
 dotenv.config();
 
@@ -77,12 +84,15 @@ app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/customers", customerRoutes);
 app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/logistics", logisticsRoutes);
+app.use("/api/v1/webhooks/shiprocket", shiprocketWebhookRoutes);
 app.use("/api/v1/email", emailRoutes);
 app.use("/api/v1/whatsapp", whatsappRoutes);
 app.use(
     "/api/v1/shipping",
     shippingRoutes
 );
+
+app.use("/api/v1/tech",techRoutes);
 
 // ============================
 // Public Routes
@@ -94,6 +104,9 @@ app.use("/api/v1/public/checkout", checkoutPublicRoutes);
 app.use("/api/v1/public/coupons", couponPublicRoutes);
 app.use("/api/v1/public/pricing", pricingPublicRoutes);
 app.use("/api/v1/public/shipping-rules", shippingRulePublicRoutes);
+app.use("/api/v1/public", orderTrackingRoutes);
+app.use("/api/v1/public/feedback",feedbackRoutes);
+app.use("/api/v1/public/contact", contactRoutes);
 
 app.use(errorHandler);
 

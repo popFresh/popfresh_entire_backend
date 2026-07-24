@@ -1,20 +1,54 @@
 import { ZodError } from "zod";
+import techService from "../services/tech.service.js";
 
 export const errorHandler = (err, req, res, next) => {
+  console.error(err);
 
-    console.error(err);
-
-    if (err instanceof ZodError) {
-        return res.status(400).json({
-            success: false,
-            message: "Validation failed",
-            errors: err.issues
-        });
-    }
-
-    return res.status(err.statusCode || 500).json({
-        success: false,
-        message: err.message || "Internal Server Error"
+  if (!(err instanceof ZodError)) {
+    techService.error({
+      category: "SYSTEM",
+      title: err.name || "Application Error",
+      message: err.message,
+      metadata: {
+        method: req.method,
+        path: req.originalUrl,
+        statusCode: err.statusCode || 500,
+        stack: err.stack,
+      },
     });
+  }
 
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: err.issues,
+    });
+  }
+
+  return res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
 };
+
+// import { ZodError } from "zod";
+
+// export const errorHandler = (err, req, res, next) => {
+
+//     console.error(err);
+
+//     if (err instanceof ZodError) {
+//         return res.status(400).json({
+//             success: false,
+//             message: "Validation failed",
+//             errors: err.issues
+//         });
+//     }
+
+//     return res.status(err.statusCode || 500).json({
+//         success: false,
+//         message: err.message || "Internal Server Error"
+//     });
+
+// };

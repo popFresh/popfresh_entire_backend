@@ -104,6 +104,14 @@ export const cancelShipmentForOrder = async (orderId) => {
         },
     });
 
+    await prisma.orderStatusHistory.create({
+  data: {
+    orderId: order.id,
+    status: "CANCELLED",
+    note: "Shipment cancelled.",
+  },
+});
+
     return updatedShipment;
 
 };

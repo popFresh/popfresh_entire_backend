@@ -1,5 +1,11 @@
 import prisma from "../lib/prisma.js";
 import ApiError from "../utils/ApiError.js";
+import {
+  emitProductCreated,
+  emitProductUpdated,
+  emitProductDeleted,
+  emitDashboardUpdate,
+} from "../socket/events.js";
 
 // GENERATE UNIQUE SLUG
 
@@ -119,7 +125,8 @@ export const createProduct = async (data) => {
         },
 
     });
-
+    emitProductCreated(product);
+emitDashboardUpdate();
     return product;
 };
 // ===============================================
@@ -382,7 +389,8 @@ export const updateProduct = async (id, data) => {
   },
 
 });
-
+    emitProductUpdated(updatedProduct);
+emitDashboardUpdate();
     return updatedProduct;
 
 };
@@ -408,6 +416,8 @@ export const deleteProduct = async (id) => {
 
     });
 
+    emitProductDeleted(id);
+emitDashboardUpdate();
 };
 
 // ===============================================
@@ -439,69 +449,133 @@ export const getProductBySlug = async (slug) => {
 // TOGGLE FEATURED
 // ===============================================
 
+// export const updateFeaturedStatus = async (id, isFeatured) => {
+
+//     await getProductById(id);
+
+//     return prisma.product.update({
+
+//         where: {
+//             id
+//         },
+
+//         data: {
+//             isFeatured
+//         }
+
+//     });
+//     emitProductUpdated(product);
+//     return product;
+// };
+
 export const updateFeaturedStatus = async (id, isFeatured) => {
+  await getProductById(id);
 
-    await getProductById(id);
+  const product = await prisma.product.update({
+    where: {
+      id,
+    },
+    data: {
+      isFeatured,
+    },
+  });
 
-    return prisma.product.update({
+  emitProductUpdated(product);
 
-        where: {
-            id
-        },
-
-        data: {
-            isFeatured
-        }
-
-    });
-
+  return product;
 };
 
 // ===============================================
 // TOGGLE ACTIVE STATUS
 // ===============================================
 
+// export const updateProductStatus = async (id, isActive) => {
+
+//     await getProductById(id);
+
+//     return prisma.product.update({
+
+//         where: {
+//             id
+//         },
+
+//         data: {
+//             isActive
+//         }
+
+//     });
+//     emitProductUpdated(product);
+// emitDashboardUpdate();
+
+// return product;
+
+// };
+
 export const updateProductStatus = async (id, isActive) => {
+  await getProductById(id);
 
-    await getProductById(id);
+  const product = await prisma.product.update({
+    where: {
+      id,
+    },
+    data: {
+      isActive,
+    },
+  });
 
-    return prisma.product.update({
+  emitProductUpdated(product);
+  emitDashboardUpdate();
 
-        where: {
-            id
-        },
-
-        data: {
-            isActive
-        }
-
-    });
-
+  return product;
 };
 
 // ===============================================
 // UPDATE STOCK
 // ===============================================
 
+// export const updateProductStock = async (id, stock) => {
+
+//     await getProductById(id);
+
+//     if (stock < 0) {
+//         throw new ApiError(400, "Stock cannot be negative.");
+//     }
+
+//     return prisma.product.update({
+
+//         where: {
+//             id
+//         },
+
+//         data: {
+//             stock
+//         }
+
+//     });
+//     emitProductUpdated(updatedProduct);
+// emitDashboardUpdate();
+
+// return updatedProduct;
+// };
+
 export const updateProductStock = async (id, stock) => {
+  await getProductById(id);
 
-    await getProductById(id);
+  if (stock < 0) {
+    throw new ApiError(400, "Stock cannot be negative.");
+  }
 
-    if (stock < 0) {
-        throw new ApiError(400, "Stock cannot be negative.");
-    }
+  const updatedProduct = await prisma.product.update({
+    where: {
+      id,
+    },
+    data: {
+      stock,
+    },
+  });
 
-    return prisma.product.update({
+  emitProductUpdated(updatedProduct);
+  emitDashboardUpdate();
 
-        where: {
-            id
-        },
-
-        data: {
-            stock
-        }
-
-    });
-
+  return updatedProduct;
 };
-
