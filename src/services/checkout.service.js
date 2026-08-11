@@ -1,4 +1,5 @@
 import { calculatePricing } from "./pricing.service.js";
+
 import {
   emitCustomerCreated,
   emitPaymentUpdated,
@@ -8,19 +9,34 @@ import {
 } from "../socket/events.js";
 
 import crypto from "crypto";
+
 import prisma from "../lib/prisma.js";
 import razorpay from "../lib/razorpay.js";
 import ApiError from "../utils/ApiError.js";
+
 import notificationService from "./notification/orderNotification.service.js";
 import { createNotification } from "./notification.service.js";
 import techService from "./tech.service.js";
 
+
+// =========================================================
+// CREATE RAZORPAY ORDER
+// =========================================================
+
 export const createRazorpayOrder = async (data) => {
   try {
+    // -------------------------------------------------------
+    // Calculate pricing from database
+    // -------------------------------------------------------
+
     const pricing = await calculatePricing({
       cartItems: data.cartItems,
       couponCode: data.couponCode ?? null,
     });
+
+    // -------------------------------------------------------
+    // Create Razorpay order
+    // -------------------------------------------------------
 
     const options = {
       amount: Math.round(pricing.total * 100),
@@ -34,11 +50,14 @@ export const createRazorpayOrder = async (data) => {
       razorpayOrder: order,
       pricing,
     };
+
   } catch (error) {
+
     await techService.error({
       category: "PAYMENT",
       title: "Razorpay Order Creation Failed",
       message: error.message,
+
       metadata: {
         provider: "Razorpay",
         currency: data.currency,
@@ -54,8 +73,14 @@ export const createRazorpayOrder = async (data) => {
 };
 
 
+// =========================================================
+// VERIFY PAYMENT
+// =========================================================
+
 export const verifyPayment = async (payload) => {
+
   try {
+
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -66,9 +91,10 @@ export const verifyPayment = async (payload) => {
       couponCode,
     } = payload;
 
-    // ============================
-    // Verify Razorpay Signature
-    // ============================
+
+    // =======================================================
+    // VERIFY RAZORPAY SIGNATURE
+    // =======================================================
 
     const generatedSignature = crypto
       .createHmac(
@@ -80,11 +106,15 @@ export const verifyPayment = async (payload) => {
       )
       .digest("hex");
 
+
     if (generatedSignature !== razorpay_signature) {
+
       await techService.error({
         category: "PAYMENT",
         title: "Invalid Razorpay Signature",
-        message: "Payment signature verification failed.",
+        message:
+          "Payment signature verification failed.",
+
         metadata: {
           provider: "Razorpay",
           razorpayOrderId: razorpay_order_id,
@@ -100,46 +130,78 @@ export const verifyPayment = async (payload) => {
       );
     }
 
-    // ============================
-    // Fetch Razorpay Payment
-    // ============================
 
-    const payment = await razorpay.payments.fetch(
-      razorpay_payment_id
-    );
+    // =======================================================
+    // FETCH RAZORPAY PAYMENT
+    // =======================================================
 
-    // ============================
-    // Recalculate Pricing
-    // ============================
+    const payment =
+      await razorpay.payments.fetch(
+        razorpay_payment_id
+      );
 
+
+    // =======================================================
+    // RECALCULATE PRICING
+    // =======================================================
+
+    // IMPORTANT:
+    //
+    // Never trust the price sent from frontend.
+    //
+    // We calculate everything again from database:
+    //
+    // Product price
+    // Combo price
+    // Combo discountPrice
+    // Combo active/inactive
+    // Product stock
+    // Shipping
+    // Coupon
+    //
     const pricing = await calculatePricing({
       cartItems,
-      couponCode,
+      couponCode: couponCode ?? null,
     });
 
-    // ============================
-    // Verify Amount
-    // ============================
 
-    if (
-      payment.amount !==
-      Math.round(pricing.total * 100)
-    ) {
+    // =======================================================
+    // VERIFY PAYMENT AMOUNT
+    // =======================================================
+
+    const expectedAmount =
+      Math.round(pricing.total * 100);
+
+
+    if (payment.amount !== expectedAmount) {
+
       await techService.error({
         category: "PAYMENT",
+
         title: "Payment Amount Mismatch",
+
         message:
           "Paid amount does not match calculated order amount.",
+
         metadata: {
           provider: "Razorpay",
-          razorpayOrderId: razorpay_order_id,
-          razorpayPaymentId: razorpay_payment_id,
-          paidAmount: payment.amount,
-          expectedAmount: Math.round(
-            pricing.total * 100
-          ),
-          customerEmail: customer?.email,
-          customerPhone: customer?.phone,
+
+          razorpayOrderId:
+            razorpay_order_id,
+
+          razorpayPaymentId:
+            razorpay_payment_id,
+
+          paidAmount:
+            payment.amount,
+
+          expectedAmount,
+
+          customerEmail:
+            customer?.email,
+
+          customerPhone:
+            customer?.phone,
         },
       });
 
@@ -149,363 +211,877 @@ export const verifyPayment = async (payload) => {
       );
     }
 
-    // -----------------------------
-    // Generate Receipt
-    // -----------------------------
+
+    // =======================================================
+    // GENERATE RECEIPT
+    // =======================================================
 
     const receipt = `PF-${Date.now()}`;
 
-    // -----------------------------
-    // Transaction
-    // -----------------------------
+
+    // =======================================================
+    // DATABASE TRANSACTION
+    // =======================================================
 
     let result;
 
+
     try {
+
       result = await prisma.$transaction(
         async (tx) => {
 
-                // Find customer
 
-      let existingCustomer = null;
-      let isNewCustomer = false;
+          // =================================================
+          // FIND CUSTOMER
+          // =================================================
 
-      if (customer.email) {
-        existingCustomer = await tx.customer.findUnique({
-          where: {
-            email: customer.email,
-          },
-        });
-      }
+          let existingCustomer = null;
 
-      if (!existingCustomer) {
-        existingCustomer = await tx.customer.findUnique({
-          where: {
-            phone: customer.phone,
-          },
-        });
-      }
+          let isNewCustomer = false;
 
-      // Create customer if doesn't exist
 
-      if (!existingCustomer) {
-        existingCustomer = await tx.customer.create({
-          data: {
-            name: customer.name,
-            email: customer.email || null,
-            phone: customer.phone,
-          },
-        });
+          // Search by email first
 
-        isNewCustomer = true;
-      }
+          if (customer.email) {
 
-      // Update customer details
+            existingCustomer =
+              await tx.customer.findUnique({
+                where: {
+                  email: customer.email,
+                },
+              });
 
-      if (!isNewCustomer) {
-        existingCustomer = await tx.customer.update({
-          where: {
-            id: existingCustomer.id,
-          },
-          data: {
-            name: customer.name,
-            email: customer.email || null,
-            phone: customer.phone,
-          },
-        });
-      }
-
-      // Save / Update Address
-
-      let savedAddress = await tx.address.findFirst({
-        where: {
-          customerId: existingCustomer.id,
-        },
-      });
-
-      if (savedAddress) {
-        savedAddress = await tx.address.update({
-          where: {
-            id: savedAddress.id,
-          },
-          data: {
-            fullName: address.fullName,
-            phone: address.phone,
-            addressLine1: address.addressLine1,
-            addressLine2: address.addressLine2,
-            landmark: address.landmark,
-            postOffice: address.postOffice,
-            district: address.district,
-            city: address.city,
-            state: address.state,
-            pincode: address.pincode,
-          },
-        });
-      } else {
-        savedAddress = await tx.address.create({
-          data: {
-            customerId: existingCustomer.id,
-            fullName: address.fullName,
-            phone: address.phone,
-            addressLine1: address.addressLine1,
-            addressLine2: address.addressLine2,
-            landmark: address.landmark,
-            postOffice: address.postOffice,
-            district: address.district,
-            city: address.city,
-            state: address.state,
-            pincode: address.pincode,
-          },
-        });
-      }
-
-      // Create Order
-
-      const order = await tx.order.create({
-        data: {
-          receipt,
-
-          customerId: existingCustomer.id,
-
-          subtotal: pricing.subtotal,
-          shippingCharge: pricing.shipping,
-          total: pricing.total,
-          discount: pricing.discount,
-
-          couponCode: pricing.coupon?.code ?? null,
-
-          shippingName: address.fullName,
-          shippingPhone: address.phone,
-          shippingAddress1: address.addressLine1,
-          shippingAddress2: address.addressLine2,
-          shippingCity: address.city,
-          shippingState: address.state,
-          shippingPincode: address.pincode,
-
-          status: "PENDING",
-        },
-      });
-
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          status: "PENDING",
-          note: "Order placed successfully.",
-        },
-      });
-
-      // Order Items
-
-      await Promise.all(
-        pricing.validatedItems.map(async (item) => {
-          await tx.orderItem.create({
-            data: {
-              orderId: order.id,
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.unitPrice,
-            },
-          });
-        })
-      );
-
-      // Payment
-
-      const createdPayment = await tx.payment.create({
-        data: {
-          orderId: order.id,
-          razorpayOrderId: razorpay_order_id,
-          razorpayPaymentId: razorpay_payment_id,
-          razorpaySignature: razorpay_signature,
-          receipt,
-          amount: pricing.total,
-          status: "SUCCESS",
-          paidAt: new Date(),
-        },
-      });
-
-      // Reduce Stock
-
-      await Promise.all(
-        pricing.validatedItems.map(async (item) => {
-          const updated = await tx.product.updateMany({
-            where: {
-              id: item.productId,
-              stock: {
-                gte: item.quantity,
-              },
-            },
-            data: {
-              stock: {
-                decrement: item.quantity,
-              },
-            },
-          });
-
-          if (updated.count === 0) {
-            throw new ApiError(
-              400,
-              "Product went out of stock during checkout."
-            );
           }
-        })
+
+
+          // If not found, search by phone
+
+          if (!existingCustomer) {
+
+            existingCustomer =
+              await tx.customer.findUnique({
+                where: {
+                  phone: customer.phone,
+                },
+              });
+
+          }
+
+
+          // =================================================
+          // CREATE CUSTOMER
+          // =================================================
+
+          if (!existingCustomer) {
+
+            existingCustomer =
+              await tx.customer.create({
+                data: {
+                  name: customer.name,
+                  email:
+                    customer.email || null,
+                  phone: customer.phone,
+                },
+              });
+
+            isNewCustomer = true;
+
+          }
+
+
+          // =================================================
+          // UPDATE EXISTING CUSTOMER
+          // =================================================
+
+          if (!isNewCustomer) {
+
+            existingCustomer =
+              await tx.customer.update({
+                where: {
+                  id: existingCustomer.id,
+                },
+
+                data: {
+                  name: customer.name,
+
+                  email:
+                    customer.email || null,
+
+                  phone: customer.phone,
+                },
+              });
+
+          }
+
+
+          // =================================================
+          // SAVE / UPDATE ADDRESS
+          // =================================================
+
+          let savedAddress =
+            await tx.address.findFirst({
+              where: {
+                customerId:
+                  existingCustomer.id,
+              },
+            });
+
+
+          if (savedAddress) {
+
+            savedAddress =
+              await tx.address.update({
+                where: {
+                  id: savedAddress.id,
+                },
+
+                data: {
+                  fullName:
+                    address.fullName,
+
+                  phone:
+                    address.phone,
+
+                  addressLine1:
+                    address.addressLine1,
+
+                  addressLine2:
+                    address.addressLine2,
+
+                  landmark:
+                    address.landmark,
+
+                  postOffice:
+                    address.postOffice,
+
+                  district:
+                    address.district,
+
+                  city:
+                    address.city,
+
+                  state:
+                    address.state,
+
+                  pincode:
+                    address.pincode,
+                },
+              });
+
+          } else {
+
+            savedAddress =
+              await tx.address.create({
+                data: {
+                  customerId:
+                    existingCustomer.id,
+
+                  fullName:
+                    address.fullName,
+
+                  phone:
+                    address.phone,
+
+                  addressLine1:
+                    address.addressLine1,
+
+                  addressLine2:
+                    address.addressLine2,
+
+                  landmark:
+                    address.landmark,
+
+                  postOffice:
+                    address.postOffice,
+
+                  district:
+                    address.district,
+
+                  city:
+                    address.city,
+
+                  state:
+                    address.state,
+
+                  pincode:
+                    address.pincode,
+                },
+              });
+
+          }
+
+
+          // =================================================
+          // CREATE ORDER
+          // =================================================
+
+          const order =
+            await tx.order.create({
+
+              data: {
+
+                receipt,
+
+                customerId:
+                  existingCustomer.id,
+
+                subtotal:
+                  pricing.subtotal,
+
+                shippingCharge:
+                  pricing.shipping,
+
+                total:
+                  pricing.total,
+
+                discount:
+                  pricing.discount,
+
+                couponCode:
+                  pricing.coupon?.code ??
+                  null,
+
+                shippingName:
+                  address.fullName,
+
+                shippingPhone:
+                  address.phone,
+
+                shippingAddress1:
+                  address.addressLine1,
+
+                shippingAddress2:
+                  address.addressLine2,
+
+                shippingCity:
+                  address.city,
+
+                shippingState:
+                  address.state,
+
+                shippingPincode:
+                  address.pincode,
+
+                status: "PENDING",
+              },
+
+            });
+
+
+          // =================================================
+          // INITIAL ORDER STATUS
+          // =================================================
+
+          await tx.orderStatusHistory.create({
+
+            data: {
+
+              orderId:
+                order.id,
+
+              status:
+                "PENDING",
+
+              note:
+                "Order placed successfully.",
+            },
+
+          });
+
+
+          // =================================================
+          // CREATE ORDER ITEMS
+          // =================================================
+          //
+          // For a normal product:
+          //
+          // Product A x 2
+          //
+          // quantity = 2
+          //
+          //
+          // For Pack of 2 x 3:
+          //
+          // A x 1
+          // B x 1
+          //
+          // becomes:
+          //
+          // A quantity = 3
+          // B quantity = 3
+          //
+          // because pricing.service already calculated
+          // the actual individual product quantities.
+          //
+          // Combo itself does NOT create a separate product.
+          //
+
+          await Promise.all(
+
+            pricing.validatedItems.map(
+              async (item) => {
+
+                await tx.orderItem.create({
+
+                  data: {
+
+                    orderId:
+                      order.id,
+
+                    productId:
+                      item.productId,
+
+                    quantity:
+                      item.quantity,
+
+                    // Combo products don't have
+                    // their individual product price.
+                    //
+                    // The combo price is stored at
+                    // Order level through subtotal/total.
+                    //
+                    // Normal products use their actual
+                    // selling price.
+
+                    price:
+                      item.unitPrice,
+
+                      isCombo: item.isCombo ?? false,
+
+                      comboPackSize: item.comboPackSize ?? null,
+                  },
+
+                  
+
+                });
+
+              }
+            )
+
+          );
+
+
+          // =================================================
+          // CREATE PAYMENT
+          // =================================================
+
+          const createdPayment =
+            await tx.payment.create({
+
+              data: {
+
+                orderId:
+                  order.id,
+
+                razorpayOrderId:
+                  razorpay_order_id,
+
+                razorpayPaymentId:
+                  razorpay_payment_id,
+
+                razorpaySignature:
+                  razorpay_signature,
+
+                receipt,
+
+                amount:
+                  pricing.total,
+
+                status:
+                  "SUCCESS",
+
+                paidAt:
+                  new Date(),
+              },
+
+            });
+
+
+          // =================================================
+          // AGGREGATE STOCK REQUIREMENTS
+          // =================================================
+          //
+          // This is important for combos.
+          //
+          // Example:
+          //
+          // Cart:
+          //
+          // Pack 2 x 2
+          // A x 1
+          // B x 1
+          //
+          // Pack 2 x 1
+          // A x 1
+          // C x 1
+          //
+          // Required stock:
+          //
+          // A = 3
+          // B = 2
+          // C = 1
+          //
+          // We aggregate first so the same product
+          // isn't updated multiple times.
+          //
+
+          const stockRequirements = new Map();
+
+
+          for (
+            const item
+            of pricing.validatedItems
+          ) {
+
+            const currentQuantity =
+              stockRequirements.get(
+                item.productId
+              ) || 0;
+
+
+            stockRequirements.set(
+
+              item.productId,
+
+              currentQuantity +
+                item.quantity
+
+            );
+
+          }
+
+
+          // =================================================
+          // REDUCE INDIVIDUAL PRODUCT STOCK
+          // =================================================
+
+          for (
+            const [
+              productId,
+              quantity,
+            ]
+            of stockRequirements
+          ) {
+
+            const updated =
+              await tx.product.updateMany({
+
+                where: {
+
+                  id: productId,
+
+                  stock: {
+                    gte: quantity,
+                  },
+
+                },
+
+                data: {
+
+                  stock: {
+                    decrement: quantity,
+                  },
+
+                },
+
+              });
+
+
+            // =================================================
+            // STOCK RACE CONDITION
+            // =================================================
+            //
+            // Pricing may have said there was enough stock,
+            // but another customer may have purchased it
+            // between pricing and this transaction.
+            //
+            // updateMany with stock >= quantity protects us.
+            //
+
+            if (updated.count === 0) {
+
+              throw new ApiError(
+
+                400,
+
+                "Product went out of stock during checkout."
+
+              );
+
+            }
+
+          }
+
+
+          // =================================================
+          // COUPON USAGE
+          // =================================================
+
+          if (pricing.coupon) {
+
+            await tx.coupon.update({
+
+              where: {
+
+                id:
+                  pricing.coupon.id,
+
+              },
+
+              data: {
+
+                usedCount: {
+
+                  increment: 1,
+
+                },
+
+              },
+
+            });
+
+          }
+
+
+          // =================================================
+          // RETURN TRANSACTION RESULT
+          // =================================================
+
+          return {
+
+            verified: true,
+
+            receipt:
+              order.receipt,
+
+            orderId:
+              order.id,
+
+            status:
+              order.status,
+
+            order,
+
+            payment:
+              createdPayment,
+
+            customer:
+              existingCustomer,
+
+            address:
+              savedAddress,
+
+            isNewCustomer,
+
+          };
+
+        }
+
       );
 
-      // Coupon Usage
 
-      if (pricing.coupon) {
-        await tx.coupon.update({
-          where: {
-            id: pricing.coupon.id,
-          },
-          data: {
-            usedCount: {
-              increment: 1,
-            },
-          },
-        });
+    } catch (error) {
+
+      await techService.error({
+
+        category: "PAYMENT",
+
+        level: "CRITICAL",
+
+        title:
+          "Order Transaction Failed",
+
+        message:
+          error.message,
+
+        metadata: {
+
+          provider:
+            "Prisma",
+
+          razorpayOrderId:
+            razorpay_order_id,
+
+          razorpayPaymentId:
+            razorpay_payment_id,
+
+          receipt,
+
+          customerEmail:
+            customer?.email,
+
+          customerPhone:
+            customer?.phone,
+
+          stack:
+            error.stack,
+
+        },
+
+      });
+
+      throw error;
+
+    }
+
+
+    // =======================================================
+    // REALTIME SOCKET EVENTS
+    // =======================================================
+
+    try {
+
+      emitOrderUpdated(
+        result.order
+      );
+
+      emitPaymentUpdated(
+        result.payment
+      );
+
+      emitDashboardUpdate();
+
+
+      // Update every product whose stock changed
+
+      const productIds =
+        new Set();
+
+
+      for (
+        const item
+        of pricing.validatedItems
+      ) {
+
+        productIds.add(
+          item.productId
+        );
+
       }
 
-      return {
-        verified: true,
 
-        receipt: order.receipt,
-        orderId: order.id,
-        status: order.status,
+      for (
+        const productId
+        of productIds
+      ) {
 
-        order,
-        payment: createdPayment,
+        emitProductUpdated({
 
-        customer: existingCustomer,
-        address: savedAddress,
+          id: productId,
 
-        isNewCustomer,
-      };
+        });
+
+      }
+
+
+      // New customer event
+
+      if (result.isNewCustomer) {
+
+        emitCustomerCreated(
+          result.customer
+        );
+
+      }
+
+    } catch (error) {
+
+      await techService.error({
+
+        category: "SYSTEM",
+
+        title:
+          "Socket Event Failed",
+
+        message:
+          error.message,
+
+        metadata: {
+
+          receipt:
+            result.order.receipt,
+
+          orderId:
+            result.order.id,
+
+          stack:
+            error.stack,
+
+        },
+
+      });
+
     }
-  );
-} catch (error) {
-  await techService.error({
-    category: "PAYMENT",
-    level: "CRITICAL",
-    title: "Order Transaction Failed",
-    message: error.message,
-    metadata: {
-      provider: "Prisma",
-      razorpayOrderId: razorpay_order_id,
-      razorpayPaymentId: razorpay_payment_id,
-      receipt,
-      customerEmail: customer?.email,
-      customerPhone: customer?.phone,
-      stack: error.stack,
-    },
-  });
 
-  throw error;
-}
-// ========================================
-// Realtime Socket Events
-// ========================================
 
-try {
-  emitOrderUpdated(result.order);
-  emitPaymentUpdated(result.payment);
-  emitDashboardUpdate();
+    // =======================================================
+    // ADMIN DASHBOARD NOTIFICATION
+    // =======================================================
 
-  for (const item of pricing.validatedItems) {
-    emitProductUpdated({
-      id: item.productId,
-    });
-  }
+    try {
 
-  if (result.isNewCustomer) {
-    emitCustomerCreated(result.customer);
-  }
-} catch (error) {
-  await techService.error({
-    category: "SYSTEM",
-    title: "Socket Event Failed",
-    message: error.message,
-    metadata: {
-      receipt: result.order.receipt,
-      orderId: result.order.id,
-      stack: error.stack,
-    },
-  });
-}
+      await createNotification({
 
-// ========================================
-// Admin Dashboard Notification
-// ========================================
+        type: "ORDER",
 
-try {
-  await createNotification({
-    type: "ORDER",
-    title: "New Order Received",
-    message: `${result.order.receipt} • ₹${Number(
-      result.order.total
-    ).toLocaleString("en-IN")}`,
-    route: "/orders",
-    entityId: result.order.id,
-    priority: "NORMAL",
-  });
-} catch (error) {
-  await techService.error({
-    category: "SYSTEM",
-    title: "Admin Notification Failed",
-    message: error.message,
-    metadata: {
-      receipt: result.order.receipt,
-      orderId: result.order.id,
-      stack: error.stack,
-    },
-  });
-}
+        title:
+          "New Order Received",
 
-// ========================================
-// Customer Email / WhatsApp
-// ========================================
+        message:
+          `${result.order.receipt} • ₹${Number(
+            result.order.total
+          ).toLocaleString("en-IN")}`,
 
-try {
-  await notificationService.sendOrderConfirmation(result);
-} catch (error) {
-  await techService.error({
-    category: "EMAIL",
-    title: "Order Confirmation Failed",
-    message: error.message,
-    metadata: {
-      receipt: result.order.receipt,
-      orderId: result.order.id,
-      customerId: result.customer.id,
-      customerEmail: result.customer.email,
-      customerPhone: result.customer.phone,
-      response: error.response?.data || null,
-      stack: error.stack,
-    },
-  });
-}
+        route:
+          "/orders",
 
-return result;
+        entityId:
+          result.order.id,
+
+        priority:
+          "NORMAL",
+
+      });
+
+    } catch (error) {
+
+      await techService.error({
+
+        category: "SYSTEM",
+
+        title:
+          "Admin Notification Failed",
+
+        message:
+          error.message,
+
+        metadata: {
+
+          receipt:
+            result.order.receipt,
+
+          orderId:
+            result.order.id,
+
+          stack:
+            error.stack,
+
+        },
+
+      });
+
+    }
+
+
+    // =======================================================
+    // CUSTOMER EMAIL / WHATSAPP
+    // =======================================================
+
+    try {
+
+      await notificationService
+        .sendOrderConfirmation(
+          result
+        );
+
+    } catch (error) {
+
+      await techService.error({
+
+        category: "EMAIL",
+
+        title:
+          "Order Confirmation Failed",
+
+        message:
+          error.message,
+
+        metadata: {
+
+          receipt:
+            result.order.receipt,
+
+          orderId:
+            result.order.id,
+
+          customerId:
+            result.customer.id,
+
+          customerEmail:
+            result.customer.email,
+
+          customerPhone:
+            result.customer.phone,
+
+          response:
+            error.response?.data ||
+            null,
+
+          stack:
+            error.stack,
+
+        },
+
+      });
+
+    }
+
+
+    // =======================================================
+    // RETURN
+    // =======================================================
+
+    return result;
+
+
   } catch (error) {
+
     await techService.error({
+
       category: "PAYMENT",
+
       level: "CRITICAL",
-      title: "Checkout Verification Failed",
-      message: error.message,
+
+      title:
+        "Checkout Verification Failed",
+
+      message:
+        error.message,
+
       metadata: {
-        provider: "Razorpay",
-        razorpayOrderId: payload?.razorpay_order_id,
-        razorpayPaymentId: payload?.razorpay_payment_id,
-        customerEmail: payload?.customer?.email,
-        customerPhone: payload?.customer?.phone,
-        response: error.response?.data || null,
-        stack: error.stack,
+
+        provider:
+          "Razorpay",
+
+        razorpayOrderId:
+          payload?.razorpay_order_id,
+
+        razorpayPaymentId:
+          payload?.razorpay_payment_id,
+
+        customerEmail:
+          payload?.customer?.email,
+
+        customerPhone:
+          payload?.customer?.phone,
+
+        response:
+          error.response?.data ||
+          null,
+
+        stack:
+          error.stack,
+
       },
+
     });
 
     throw error;
-  }
-};
 
+  }
+
+};
 
 
 // import { calculatePricing } from "./pricing.service.js";

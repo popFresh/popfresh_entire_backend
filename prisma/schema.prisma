@@ -220,7 +220,8 @@ model OrderItem {
   price     Decimal @db.Decimal(10, 2)
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
-
+  isCombo       Boolean @default(false)
+comboPackSize Int?
   @@index([orderId])
   @@index([productId])
 }
@@ -452,4 +453,15 @@ model TechLog {
   @@index([level])
   @@index([category])
   @@index([createdAt(sort: Desc)])
+}
+
+
+model ComboConfig {
+  id             String   @id @default(cuid())
+  packSize       Int      @unique
+  price          Decimal  @db.Decimal(10, 2)
+  discountPrice  Decimal? @db.Decimal(10, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
