@@ -36,6 +36,13 @@ export const testWhatsApp = async (req, res) => {
   }
 };
 
+
+
+
+
+
+
+
 // this also worked , but this was for testing only 
 // import whatsappService from "../services/whatsapp/whatsapp.service.js";
 

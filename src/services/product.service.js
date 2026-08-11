@@ -579,3 +579,27 @@ export const updateProductStock = async (id, stock) => {
 
   return updatedProduct;
 };
+
+
+// ===============================================
+// GET COMBO OPTIONS
+// ===============================================
+
+export const getComboOptions = async () => {
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+    },
+
+    include: {
+      category: true,
+      images: true,
+    },
+
+    orderBy: {
+      displayOrder: "asc",
+    },
+  });
+
+  return products;
+};

@@ -13,7 +13,7 @@ export const sendContactEmail = async ({
   try {
     return await resend.emails.send({
       from: "PopFresh Contact <contact@popfresh.in>",
-      to: "bajajmohit85@gmail.com",
+      to: "infopopfresh@gmail.com",
       subject: `📩 New Contact Form - ${name}`,
       html: contactEmailTemplate({
         name,

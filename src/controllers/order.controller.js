@@ -98,10 +98,7 @@ export const getOrderByIdController = asyncHandler(async (req, res) => {
 
 });
 
-// ==============================================
-// UPDATE ORDER STATUS
-// PATCH /api/v1/orders/:id/status
-// ==============================================
+
 
 // ==============================================
 // UPDATE ORDER STATUS

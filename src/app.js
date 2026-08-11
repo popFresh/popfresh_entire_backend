@@ -30,6 +30,7 @@ import dashboardRoutes from "./routes/api/v1/dashboard.routes.js";
 import searchRoutes from "./routes/api/v1/search.routes.js";
 import notificationRoutes from "./routes/api/v1/notification.route.js";
 import techRoutes from "./routes/api/v1/tech.routes.js";
+import comboConfigRoutes from "./routes/api/v1/comboConfig.routes.js";
 
 
 // PUBLIC ROUTES 
@@ -42,6 +43,7 @@ import productPublicRoutes from "./routes/api/v1/public/product.routes.js";
 import orderTrackingRoutes from "./routes/api/v1/public/orderTracking.routes.js"
 import feedbackRoutes from "./routes/api/v1/public/feedback.routes.js";
 import contactRoutes from "./routes/api/v1/public/contact.routes.js";
+import comboConfigPublicRoutes from "./routes/api/v1/public/comboConfig.routes.js";
 
 
 
@@ -94,6 +96,12 @@ app.use(
 
 app.use("/api/v1/tech",techRoutes);
 
+
+app.use(
+  "/api/v1/combo-config",
+  comboConfigRoutes
+);
+
 // ============================
 // Public Routes
 // ============================
@@ -107,6 +115,10 @@ app.use("/api/v1/public/shipping-rules", shippingRulePublicRoutes);
 app.use("/api/v1/public", orderTrackingRoutes);
 app.use("/api/v1/public/feedback",feedbackRoutes);
 app.use("/api/v1/public/contact", contactRoutes);
+app.use(
+  "/api/v1/public/combo-config",
+  comboConfigPublicRoutes
+);
 
 app.use(errorHandler);
 
